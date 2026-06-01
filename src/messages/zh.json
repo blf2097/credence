@@ -35,21 +35,27 @@
     "resolution_source": "结算来源",
     "buy": "买入",
     "sell": "卖出",
-    "amount_usd": "金额（USDC）",
+    "amount_usd": "金额（pUSD）",
     "shares": "份额",
     "potential_payout": "潜在赔付",
     "place_order": "确认下单",
+    "preview_order": "预览订单",
     "order_book": "订单簿",
     "loading": "加载中…"
   },
   "wallet": {
     "connect": "连接钱包",
+    "connecting": "连接中…",
     "disconnect": "断开",
     "wrong_network": "请切换到 Polygon 主网",
     "switch_network": "切换网络",
-    "balance_usdc": "USDC 余额",
-    "approve_usdc": "授权 USDC",
-    "approving": "授权中…"
+    "switching": "切换中…",
+    "balance_usdc": "pUSD 余额",
+    "allowance": "授权额度",
+    "approve_usdc": "授权 pUSD",
+    "approving": "授权中…",
+    "insufficient_balance": "余额不足",
+    "ready_to_order": "可提交订单"
   },
   "errors": {
     "generic": "出错了，请稍后重试。",

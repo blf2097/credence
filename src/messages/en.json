@@ -35,21 +35,27 @@
     "resolution_source": "Resolves via",
     "buy": "Buy",
     "sell": "Sell",
-    "amount_usd": "Amount (USDC)",
+    "amount_usd": "Amount (pUSD)",
     "shares": "Shares",
     "potential_payout": "Potential payout",
     "place_order": "Place order",
+    "preview_order": "Preview order",
     "order_book": "Order book",
     "loading": "Loading…"
   },
   "wallet": {
     "connect": "Connect Wallet",
+    "connecting": "Connecting…",
     "disconnect": "Disconnect",
     "wrong_network": "Please switch to Polygon mainnet",
     "switch_network": "Switch network",
-    "balance_usdc": "USDC balance",
-    "approve_usdc": "Approve USDC",
-    "approving": "Approving…"
+    "switching": "Switching…",
+    "balance_usdc": "pUSD balance",
+    "allowance": "Allowance",
+    "approve_usdc": "Approve pUSD",
+    "approving": "Approving…",
+    "insufficient_balance": "Insufficient balance",
+    "ready_to_order": "Ready to order"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",

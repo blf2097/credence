@@ -179,6 +179,7 @@ function normalizeMarket(raw: RawGammaMarket): GammaMarket {
     bestBid: raw.bestBid,
     bestAsk: raw.bestAsk,
     spread: raw.spread,
+    negRisk: raw.negRisk,
     clobTokenIds,
     outcomes,
     outcomePrices,

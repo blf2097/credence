@@ -1,7 +1,7 @@
 'use client';
 
 import { useAccount } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { WalletButton } from '@/components/wallet-button';
 
 export default function PortfolioPage() {
   const { address, isConnected } = useAccount();
@@ -12,7 +12,7 @@ export default function PortfolioPage() {
       {!isConnected ? (
         <div className="rounded-xl border border-border bg-bg-elevated p-8 text-center">
           <p className="text-fg-muted mb-4">连接钱包以查看持仓</p>
-          <ConnectButton />
+          <WalletButton />
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-bg-elevated p-6">

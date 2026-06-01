@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { WalletButton } from './wallet-button';
 
 export function Header() {
   const t = useTranslations('nav');
@@ -32,11 +32,7 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           <LocaleSwitcher current={locale} />
-          <ConnectButton
-            chainStatus="icon"
-            accountStatus="address"
-            showBalance={false}
-          />
+          <WalletButton />
         </div>
       </div>
     </header>

@@ -23,6 +23,7 @@ export interface GammaMarket {
   bestBid?: number;
   bestAsk?: number;
   spread?: number;
+  negRisk?: boolean;
   // Token IDs are needed to place orders on CLOB.
   // Each market has 2 outcomes (Yes/No), so 2 token ids.
   clobTokenIds: string[];
@@ -66,6 +67,7 @@ export interface RawGammaMarket {
   bestBid?: number;
   bestAsk?: number;
   spread?: number;
+  negRisk?: boolean;
   clobTokenIds?: string | string[];
   outcomes?: string | string[];
   outcomePrices?: string | string[];

@@ -2,17 +2,24 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useAccount } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount, useChainId } from 'wagmi';
+import { polygon } from 'wagmi/chains';
 import { cn, formatProb } from '@/lib/utils';
 import type { GammaMarket } from '@/lib/polymarket/types';
+import { WalletButton } from './wallet-button';
+import { usePolymarketCollateral } from '@/hooks/use-polymarket-collateral';
 
 export function OrderForm({ market }: { market: GammaMarket }) {
   const t = useTranslations('market');
   const tWallet = useTranslations('wallet');
   const { isConnected } = useAccount();
+  const chainId = useChainId();
   const [side, setSide] = useState<'YES' | 'NO'>('YES');
   const [amount, setAmount] = useState('10');
+  const collateral = usePolymarketCollateral({
+    amount,
+    negRisk: market.negRisk,
+  });
 
   const yesPrice = parseFloat(market.outcomePrices?.[0] ?? '0.5');
   const noPrice = 1 - yesPrice;
@@ -20,12 +27,16 @@ export function OrderForm({ market }: { market: GammaMarket }) {
   const shares = price > 0 ? parseFloat(amount || '0') / price : 0;
   const payout = shares * 1; // 1 USDC per share if it resolves
 
-  const handlePlaceOrder = async () => {
-    // D3 task: wire to /api/order which calls clob.placeOrder
+  const handlePreviewOrder = async () => {
+    // D4 task: wire to /api/orders which calls clob.placeOrder.
+    // D3 deliberately stops at balance + allowance + deterministic preview.
     alert(
-      `[Demo] place ${side} order, $${amount} USDC at ${formatProb(price)}\nShares: ${shares.toFixed(2)}`,
+      `[Preview] ${side} · ${amount} pUSD at ${formatProb(price)}\nShares: ${shares.toFixed(2)}\nSpender: ${collateral.spender}`,
     );
   };
+
+  const isWrongChain = isConnected && chainId !== polygon.id;
+  const amountNumber = parseFloat(amount || '0');
 
   return (
     <div className="rounded-xl border border-border bg-bg-card p-4 sticky top-20">
@@ -65,13 +76,46 @@ export function OrderForm({ market }: { market: GammaMarket }) {
       <div className="mt-4 space-y-1 text-sm">
         <Row label={t('shares')} value={shares.toFixed(2)} />
         <Row label={t('potential_payout')} value={`$${payout.toFixed(2)}`} />
+        {isConnected && !isWrongChain ? (
+          <>
+            <Row
+              label={tWallet('balance_usdc')}
+              value={`${collateral.balanceFormatted} pUSD`}
+            />
+            <Row
+              label={tWallet('allowance')}
+              value={`${collateral.allowanceFormatted} pUSD`}
+            />
+          </>
+        ) : null}
       </div>
 
-      <div className="mt-4">
-        {isConnected ? (
+      <div className="mt-4 space-y-2">
+        {!isConnected || isWrongChain ? (
+          <WalletButton className="w-full py-3" />
+        ) : !collateral.hasEnoughBalance ? (
           <button
-            onClick={handlePlaceOrder}
-            disabled={!market.acceptingOrders || parseFloat(amount) <= 0}
+            disabled
+            className="w-full py-3 rounded-lg bg-bg-elevated text-fg-muted font-medium border border-border cursor-not-allowed"
+          >
+            {amountNumber > 0
+              ? tWallet('insufficient_balance')
+              : t('amount_usd')}
+          </button>
+        ) : !collateral.hasEnoughAllowance ? (
+          <button
+            onClick={collateral.approve}
+            disabled={collateral.isApproving || collateral.isLoading}
+            className="w-full py-3 rounded-lg bg-accent-gold text-bg font-medium hover:opacity-90 disabled:opacity-40"
+          >
+            {collateral.isApproving
+              ? tWallet('approving')
+              : tWallet('approve_usdc')}
+          </button>
+        ) : (
+          <button
+            onClick={handlePreviewOrder}
+            disabled={!market.acceptingOrders || amountNumber <= 0}
             className={cn(
               'w-full py-3 rounded-lg font-medium transition-colors',
               side === 'YES'
@@ -80,19 +124,8 @@ export function OrderForm({ market }: { market: GammaMarket }) {
               'disabled:opacity-40 disabled:cursor-not-allowed',
             )}
           >
-            {t('place_order')}
+            {t('preview_order')}
           </button>
-        ) : (
-          <ConnectButton.Custom>
-            {({ openConnectModal }) => (
-              <button
-                onClick={openConnectModal}
-                className="w-full py-3 rounded-lg bg-fg text-bg font-medium hover:opacity-90"
-              >
-                {tWallet('connect')}
-              </button>
-            )}
-          </ConnectButton.Custom>
         )}
       </div>
     </div>

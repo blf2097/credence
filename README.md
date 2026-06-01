@@ -5,7 +5,7 @@
 Localized [Polymarket](https://polymarket.com) frontend for Southeast Asia crypto users. Polymarket-native liquidity, zero markup. ZH/EN UI, fiat ramp, AI insights, Telegram Bot ordering.
 
 **Domain**: `credence.gg`
-**Stack**: Next.js 14 · TypeScript · App Router · wagmi · RainbowKit · next-intl · Tailwind · Polygon mainnet · Polymarket Gamma + CLOB
+**Stack**: Next.js 14 · TypeScript · App Router · wagmi · viem · next-intl · Tailwind · Polygon mainnet · Polymarket Gamma + CLOB
 
 ---
 
@@ -15,7 +15,7 @@ Requires Node >= 20 and pnpm >= 9.
 
 ```bash
 pnpm install
-cp .env.example .env.local   # then fill in values (Alchemy + WalletConnect minimum)
+cp .env.example .env.local   # then fill in values (Alchemy recommended)
 pnpm dev
 ```
 
@@ -26,9 +26,8 @@ Open `http://localhost:3000` — you'll be redirected to `/zh`.
 | Var | Where to get it | Free? |
 |---|---|---|
 | `NEXT_PUBLIC_POLYGON_RPC_URL` | https://www.alchemy.com/ → create app on Polygon mainnet | ✅ Free tier |
-| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | https://cloud.reown.com/ | ✅ Free |
 
-Other vars in `.env.example` can stay empty for D1; they unlock features in later phases.
+Other vars in `.env.example` can stay empty for now; they unlock features in later phases. WalletConnect QR is intentionally disabled in D3; injected wallets (MetaMask/Rabby/OKX) are supported first.
 
 ---
 
@@ -44,7 +43,7 @@ src/
 │   │   ├── portfolio/page.tsx    # user positions
 │   │   └── legal/{terms,risk}/   # placeholder legal pages (replaced D10)
 │   ├── globals.css
-│   └── providers.tsx             # WagmiProvider + RainbowKit + ReactQuery
+│   └── providers.tsx             # WagmiProvider + ReactQuery
 ├── components/
 │   ├── header.tsx
 │   ├── footer.tsx
@@ -56,9 +55,11 @@ src/
 ├── lib/
 │   ├── polymarket/
 │   │   ├── gamma.ts              # read API (markets, events)
-│   │   ├── clob.ts               # order book + place order (D3)
+│   │   ├── clob.ts               # order book + place order guardrail
+│   │   ├── contracts.ts          # Polygon contract addresses
+│   │   ├── order.ts              # order preview/request types
 │   │   └── types.ts              # narrow types
-│   ├── wagmi-config.ts           # Polygon mainnet + RainbowKit
+│   ├── wagmi-config.ts           # Polygon mainnet + injected wallets
 │   └── utils.ts                  # cn, formatUSD, formatProb
 ├── messages/
 │   ├── zh.json                   # Chinese (primary)
@@ -74,9 +75,9 @@ src/
 | Day | Owner | Deliverable |
 |---|---|---|
 | **D1** | AI | This scaffold ✅ |
-| D2 | AI | Real Gamma API wiring, market list renders live data |
-| D3 | AI | EIP-712 signing flow, USDC.e approval, place order via CLOB |
-| D4 | AI | Order book live updates (websocket or polling) |
+| **D2** | AI | Real Gamma API wiring, market list renders live data ✅ |
+| **D3** | AI | Injected wallet + Polygon switch + pUSD balance/allowance + guarded order preview ✅ |
+| D4 | AI | EIP-712 signing flow and real CLOB order submission |
 | D5 | AI | Portfolio page (positions API) |
 | D6 | AI | Cloudflare geo-block (US/UK/SG/KR/JP), IPQS VPN check |
 | D7 | 龙飞 + AI | Vercel deploy to `credence.gg`, smoke test on testnet wallet |
@@ -127,6 +128,17 @@ src/
 | Get positions | `GET /positions?user=0x...` | L2 API key |
 
 L2 keys are derived once per address via `ClobClient.deriveApiKey(signer)` and cached server-side.
+
+### Polygon trading contracts
+
+| Contract | Address | Purpose |
+|---|---|---|
+| pUSD collateral | `0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB` | Trading collateral token |
+| CTF Exchange | `0xE111180000d2663C0091e4f400237545B87B996B` | Standard market order settlement spender |
+| Neg Risk CTF Exchange | `0xe2222d279d744050d28e00520010520000310F59` | Negative-risk market order settlement spender |
+| Conditional Tokens | `0x4D97DCd97eC945f40cF65F87097ACe5EA0476045` | Outcome ERC-1155 positions |
+
+D3 stops at pUSD balance + allowance + order preview. D4 implements actual signed order submission. We never accept raw private keys through the browser/API.
 
 ---
 
