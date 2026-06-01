@@ -5,10 +5,11 @@ import { useTranslations } from 'next-intl';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { cn, formatProb } from '@/lib/utils';
-import type { GammaMarket, OrderSide } from '@/lib/polymarket/types';
+import type { GammaMarket } from '@/lib/polymarket/types';
 
 export function OrderForm({ market }: { market: GammaMarket }) {
   const t = useTranslations('market');
+  const tWallet = useTranslations('wallet');
   const { isConnected } = useAccount();
   const [side, setSide] = useState<'YES' | 'NO'>('YES');
   const [amount, setAmount] = useState('10');
@@ -88,7 +89,7 @@ export function OrderForm({ market }: { market: GammaMarket }) {
                 onClick={openConnectModal}
                 className="w-full py-3 rounded-lg bg-fg text-bg font-medium hover:opacity-90"
               >
-                {useTranslations('wallet')('connect')}
+                {tWallet('connect')}
               </button>
             )}
           </ConnectButton.Custom>

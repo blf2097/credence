@@ -17,6 +17,12 @@ export interface GammaMarket {
   endDate: string; // ISO
   volume: string;
   liquidity: string;
+  volumeNum: number;
+  liquidityNum: number;
+  volume24hr?: number;
+  bestBid?: number;
+  bestAsk?: number;
+  spread?: number;
   // Token IDs are needed to place orders on CLOB.
   // Each market has 2 outcomes (Yes/No), so 2 token ids.
   clobTokenIds: string[];
@@ -29,6 +35,9 @@ export interface GammaMarket {
   closed: boolean;
   acceptingOrders: boolean;
   resolutionSource?: string;
+  eventTitle?: string;
+  eventSlug?: string;
+  seriesSlug?: string;
 }
 
 export interface GammaEvent {
@@ -40,6 +49,42 @@ export interface GammaEvent {
   endDate: string;
   image?: string;
   markets: GammaMarket[];
+}
+
+export interface RawGammaMarket {
+  id?: string | number;
+  question?: string;
+  description?: string;
+  slug?: string;
+  endDate?: string;
+  endDateIso?: string;
+  volume?: string | number;
+  liquidity?: string | number;
+  volumeNum?: number;
+  liquidityNum?: number;
+  volume24hr?: number;
+  bestBid?: number;
+  bestAsk?: number;
+  spread?: number;
+  clobTokenIds?: string | string[];
+  outcomes?: string | string[];
+  outcomePrices?: string | string[];
+  category?: string;
+  image?: string;
+  icon?: string;
+  active?: boolean;
+  closed?: boolean;
+  acceptingOrders?: boolean;
+  resolutionSource?: string;
+  events?: Array<{
+    title?: string;
+    slug?: string;
+    image?: string;
+    icon?: string;
+    resolutionSource?: string;
+    seriesSlug?: string;
+    series?: Array<{ slug?: string; title?: string }>;
+  }>;
 }
 
 export type MarketCategory =

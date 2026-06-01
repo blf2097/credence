@@ -34,13 +34,16 @@ export async function getOrderBook(tokenId: string): Promise<OrderBook> {
     market: string;
     asks: { price: string; size: string }[];
     bids: { price: string; size: string }[];
-    timestamp: number;
+    timestamp: string | number;
   };
   return {
     marketId: raw.market,
     asks: raw.asks,
     bids: raw.bids,
-    timestamp: raw.timestamp,
+    timestamp:
+      typeof raw.timestamp === 'number'
+        ? raw.timestamp
+        : Number.parseInt(raw.timestamp, 10),
   };
 }
 

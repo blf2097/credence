@@ -1,17 +1,21 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { polygon } from 'wagmi/chains';
 import { http } from 'viem';
+import { createConfig } from 'wagmi';
+import { injected } from 'wagmi/connectors';
+import { polygon } from 'wagmi/chains';
 
 const POLYGON_RPC =
   process.env.NEXT_PUBLIC_POLYGON_RPC_URL ?? 'https://polygon-rpc.com';
 
-const WC_PROJECT_ID =
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? 'dev-placeholder';
-
-export const wagmiConfig = getDefaultConfig({
-  appName: process.env.NEXT_PUBLIC_APP_NAME ?? 'Credence',
-  projectId: WC_PROJECT_ID,
+/**
+ * D2 note:
+ * RainbowKit's getDefaultConfig eagerly initializes WalletConnect storage,
+ * which touches indexedDB during Next.js prerender and pollutes builds.
+ * For now we use the injected connector only (MetaMask/Rabby/OKX Wallet).
+ * WalletConnect QR can be re-enabled in D3 behind a no-SSR boundary.
+ */
+export const wagmiConfig = createConfig({
   chains: [polygon],
+  connectors: [injected()],
   transports: {
     [polygon.id]: http(POLYGON_RPC),
   },
