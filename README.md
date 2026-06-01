@@ -1,0 +1,135 @@
+# Credence
+
+> Bet on the truth, not the odds.
+
+Localized [Polymarket](https://polymarket.com) frontend for Southeast Asia crypto users. Polymarket-native liquidity, zero markup. ZH/EN UI, fiat ramp, AI insights, Telegram Bot ordering.
+
+**Domain**: `credence.gg`
+**Stack**: Next.js 14 · TypeScript · App Router · wagmi · RainbowKit · next-intl · Tailwind · Polygon mainnet · Polymarket Gamma + CLOB
+
+---
+
+## Quick start
+
+Requires Node >= 20 and pnpm >= 9.
+
+```bash
+pnpm install
+cp .env.example .env.local   # then fill in values (Alchemy + WalletConnect minimum)
+pnpm dev
+```
+
+Open `http://localhost:3000` — you'll be redirected to `/zh`.
+
+### Required env vars (minimum to run)
+
+| Var | Where to get it | Free? |
+|---|---|---|
+| `NEXT_PUBLIC_POLYGON_RPC_URL` | https://www.alchemy.com/ → create app on Polygon mainnet | ✅ Free tier |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | https://cloud.reown.com/ | ✅ Free |
+
+Other vars in `.env.example` can stay empty for D1; they unlock features in later phases.
+
+---
+
+## Project structure
+
+```
+src/
+├── app/
+│   ├── [locale]/
+│   │   ├── layout.tsx            # locale-scoped layout w/ providers
+│   │   ├── page.tsx              # home (market list)
+│   │   ├── market/[id]/page.tsx  # market detail + order form
+│   │   ├── portfolio/page.tsx    # user positions
+│   │   └── legal/{terms,risk}/   # placeholder legal pages (replaced D10)
+│   ├── globals.css
+│   └── providers.tsx             # WagmiProvider + RainbowKit + ReactQuery
+├── components/
+│   ├── header.tsx
+│   ├── footer.tsx
+│   ├── category-tabs.tsx
+│   ├── market-list.tsx           # server component, fetches Gamma
+│   ├── market-card.tsx
+│   ├── order-form.tsx            # client, will sign EIP-712 in D3
+│   └── order-book-view.tsx       # server component, polls CLOB
+├── lib/
+│   ├── polymarket/
+│   │   ├── gamma.ts              # read API (markets, events)
+│   │   ├── clob.ts               # order book + place order (D3)
+│   │   └── types.ts              # narrow types
+│   ├── wagmi-config.ts           # Polygon mainnet + RainbowKit
+│   └── utils.ts                  # cn, formatUSD, formatProb
+├── messages/
+│   ├── zh.json                   # Chinese (primary)
+│   └── en.json                   # English
+├── i18n.ts                       # next-intl config
+└── middleware.ts                 # geo-block + locale routing
+```
+
+---
+
+## Two-week sprint plan
+
+| Day | Owner | Deliverable |
+|---|---|---|
+| **D1** | AI | This scaffold ✅ |
+| D2 | AI | Real Gamma API wiring, market list renders live data |
+| D3 | AI | EIP-712 signing flow, USDC.e approval, place order via CLOB |
+| D4 | AI | Order book live updates (websocket or polling) |
+| D5 | AI | Portfolio page (positions API) |
+| D6 | AI | Cloudflare geo-block (US/UK/SG/KR/JP), IPQS VPN check |
+| D7 | 龙飞 + AI | Vercel deploy to `credence.gg`, smoke test on testnet wallet |
+| D8 | AI | Telegram Bot skeleton (notify on resolution) |
+| D9 | AI | Supabase event tracking |
+| D10 | 龙飞 | Engage law firm (Tilleke/SyCip), Termly subscribe, replace placeholder legal |
+| D11 | AI | Vietnamese + Indonesian translations |
+| D12 | AI | Referral codes + KOL link kit |
+| D13 | AI | Landing page polish, OG cards, analytics |
+| D14 | 龙飞 + AI | Invite 50 internal users, collect feedback |
+
+---
+
+## Architecture notes
+
+**Why server components for reads?** Gamma + CLOB book are public, cacheable, and don't need wallet context. Pulling them server-side means:
+
+1. No rate-limit exposure (we hit the API once, all users share the cache)
+2. Faster TTFB
+3. SEO works (markets are crawlable)
+
+**Why client component for the order form?** Wallet signing requires browser context (wagmi hooks).
+
+**Compliance posture (placeholder, finalized D10):**
+
+- Geo-block US/UK/SG/KR/JP via Cloudflare worker (header-based redirect to a "service unavailable" page)
+- Mandatory ToS + Risk acknowledgment modal on first visit (D6)
+- BVI/Seychelles entity holds the domain and Vercel account (龙飞 to register D10)
+- Legal pages drafted by Tilleke & Gibbins (Vietnam) / SyCip (Philippines) — D10
+- No KYC for MVP (Polymarket itself doesn't KYC; we're a frontend)
+
+**What we are NOT:**
+
+- We do **not** custody funds (smart wallet only, user signs every tx)
+- We do **not** quote our own odds (we mirror Polymarket book)
+- We do **not** add markup (no service fee in v1; consider 0.5% in v2 only after PMF)
+
+---
+
+## Polymarket integration cheatsheet
+
+| What | Endpoint | Auth |
+|---|---|---|
+| List markets | `GET https://gamma-api.polymarket.com/markets` | None |
+| Get market detail | `GET /markets/{id}` | None |
+| Get order book | `GET https://clob.polymarket.com/book?token_id=X` | None |
+| Place order | `POST https://clob.polymarket.com/order` | EIP-712 sig + L2 API key |
+| Get positions | `GET /positions?user=0x...` | L2 API key |
+
+L2 keys are derived once per address via `ClobClient.deriveApiKey(signer)` and cached server-side.
+
+---
+
+## License
+
+Private, all rights reserved. © 2026 Credence.

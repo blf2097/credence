@@ -1,0 +1,71 @@
+{
+  "brand": {
+    "name": "Credence",
+    "tagline": "让群体的智慧值得相信"
+  },
+  "nav": {
+    "markets": "市场",
+    "portfolio": "我的持仓",
+    "leaderboard": "榜单",
+    "docs": "教程",
+    "connect": "连接钱包"
+  },
+  "home": {
+    "hero": {
+      "title": "押注真相，而不是赔率",
+      "subtitle": "东南亚加密用户的预测市场入口。Polymarket 原生流动性，零额外加价。",
+      "cta_primary": "浏览市场",
+      "cta_secondary": "查看教程"
+    },
+    "categories": {
+      "all": "全部",
+      "politics": "政治",
+      "crypto": "加密",
+      "sports": "体育",
+      "tech": "科技",
+      "world": "国际"
+    }
+  },
+  "market": {
+    "yes": "Yes",
+    "no": "No",
+    "volume": "成交量",
+    "liquidity": "流动性",
+    "ends_at": "截止",
+    "resolution_source": "结算来源",
+    "buy": "买入",
+    "sell": "卖出",
+    "amount_usd": "金额（USDC）",
+    "shares": "份额",
+    "potential_payout": "潜在赔付",
+    "place_order": "确认下单",
+    "order_book": "订单簿",
+    "loading": "加载中…"
+  },
+  "wallet": {
+    "connect": "连接钱包",
+    "disconnect": "断开",
+    "wrong_network": "请切换到 Polygon 主网",
+    "switch_network": "切换网络",
+    "balance_usdc": "USDC 余额",
+    "approve_usdc": "授权 USDC",
+    "approving": "授权中…"
+  },
+  "errors": {
+    "generic": "出错了，请稍后重试。",
+    "no_markets": "没有找到市场。",
+    "network": "网络错误，请检查连接。",
+    "geo_blocked": "本服务暂不在您所在地区开放。"
+  },
+  "legal": {
+    "terms_title": "用户协议",
+    "risk_title": "风险揭示",
+    "risk_disclaimer": "预测市场涉及资金损失风险，仅适用于成年合格用户。请确认您所在司法辖区允许此类交易。"
+  },
+  "footer": {
+    "powered_by": "基于 Polymarket 流动性",
+    "terms": "用户协议",
+    "risk": "风险揭示",
+    "contact": "联系我们"
+  }
+}

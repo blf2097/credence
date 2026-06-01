@@ -1,0 +1,71 @@
+{
+  "brand": {
+    "name": "Credence",
+    "tagline": "Bet on the truth, not the odds"
+  },
+  "nav": {
+    "markets": "Markets",
+    "portfolio": "Portfolio",
+    "leaderboard": "Leaderboard",
+    "docs": "Guides",
+    "connect": "Connect Wallet"
+  },
+  "home": {
+    "hero": {
+      "title": "Bet on truth, not odds",
+      "subtitle": "Localized prediction markets for Southeast Asia crypto users. Polymarket-native liquidity, zero markup.",
+      "cta_primary": "Browse Markets",
+      "cta_secondary": "Read the Guide"
+    },
+    "categories": {
+      "all": "All",
+      "politics": "Politics",
+      "crypto": "Crypto",
+      "sports": "Sports",
+      "tech": "Tech",
+      "world": "World"
+    }
+  },
+  "market": {
+    "yes": "Yes",
+    "no": "No",
+    "volume": "Volume",
+    "liquidity": "Liquidity",
+    "ends_at": "Ends",
+    "resolution_source": "Resolves via",
+    "buy": "Buy",
+    "sell": "Sell",
+    "amount_usd": "Amount (USDC)",
+    "shares": "Shares",
+    "potential_payout": "Potential payout",
+    "place_order": "Place order",
+    "order_book": "Order book",
+    "loading": "Loading…"
+  },
+  "wallet": {
+    "connect": "Connect Wallet",
+    "disconnect": "Disconnect",
+    "wrong_network": "Please switch to Polygon mainnet",
+    "switch_network": "Switch network",
+    "balance_usdc": "USDC balance",
+    "approve_usdc": "Approve USDC",
+    "approving": "Approving…"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "no_markets": "No markets found.",
+    "network": "Network error. Check your connection.",
+    "geo_blocked": "Service not available in your region."
+  },
+  "legal": {
+    "terms_title": "Terms of Service",
+    "risk_title": "Risk Disclosure",
+    "risk_disclaimer": "Prediction markets involve risk of financial loss and are intended for adult, eligible users only. Confirm your jurisdiction permits such trading."
+  },
+  "footer": {
+    "powered_by": "Powered by Polymarket liquidity",
+    "terms": "Terms",
+    "risk": "Risk",
+    "contact": "Contact"
+  }
+}
