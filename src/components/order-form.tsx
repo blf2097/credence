@@ -148,7 +148,7 @@ export function OrderForm({ market }: { market: GammaMarket }) {
       <div className="mt-4 space-y-2">
         {!isConnected || isWrongChain ? (
           <WalletButton className="w-full py-3" />
-        ) : !collateral.hasEnoughBalance ? (
+        ) : isRealTradingEnabled && !collateral.hasEnoughBalance ? (
           <button
             disabled
             className="w-full py-3 rounded-lg bg-bg-elevated text-fg-muted font-medium border border-border cursor-not-allowed"
@@ -157,7 +157,7 @@ export function OrderForm({ market }: { market: GammaMarket }) {
               ? tWallet('insufficient_balance')
               : t('amount_usd')}
           </button>
-        ) : !collateral.hasEnoughAllowance ? (
+        ) : isRealTradingEnabled && !collateral.hasEnoughAllowance ? (
           <button
             onClick={collateral.approve}
             disabled={collateral.isApproving || collateral.isLoading}
