@@ -38,8 +38,9 @@
     "amount_usd": "金额（pUSD）",
     "shares": "份额",
     "potential_payout": "潜在赔付",
-    "place_order": "确认下单",
-    "preview_order": "预览订单",
+    "place_order": "提交真实订单",
+    "preview_order": "验证订单路径",
+    "submitting_order": "提交中…",
     "order_book": "订单簿",
     "loading": "加载中…"
   },

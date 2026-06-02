@@ -11,6 +11,8 @@ export interface OrderPreview {
   collateralAmount: number;
   trader: Address;
   spender: Address;
+  tickSize?: string;
+  negRisk?: boolean;
 }
 
 export interface CreateOrderRequest extends OrderPreview {
@@ -21,8 +23,15 @@ export interface CreateOrderRequest extends OrderPreview {
 
 export interface CreateOrderResponse {
   orderId?: string;
-  status: 'preview' | 'submitted' | 'rejected' | 'not_implemented';
+  status:
+    | 'preview'
+    | 'signed'
+    | 'submitted'
+    | 'rejected'
+    | 'not_implemented'
+    | 'disabled';
   message: string;
+  raw?: unknown;
 }
 
 export function validateOrderPreview(input: Partial<OrderPreview>): string[] {

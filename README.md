@@ -27,7 +27,7 @@ Open `http://localhost:3000` — you'll be redirected to `/zh`.
 |---|---|---|
 | `NEXT_PUBLIC_POLYGON_RPC_URL` | https://www.alchemy.com/ → create app on Polygon mainnet | ✅ Free tier |
 
-Other vars in `.env.example` can stay empty for now; they unlock features in later phases. WalletConnect QR is intentionally disabled in D3; injected wallets (MetaMask/Rabby/OKX) are supported first.
+Other vars in `.env.example` can stay empty for normal dev. WalletConnect QR is intentionally disabled; injected wallets (MetaMask/Rabby/OKX) are supported first. Real CLOB submission is behind `NEXT_PUBLIC_ENABLE_REAL_TRADING=true` and capped at 1 pUSD per D4 order.
 
 ---
 
@@ -50,12 +50,13 @@ src/
 │   ├── category-tabs.tsx
 │   ├── market-list.tsx           # server component, fetches Gamma
 │   ├── market-card.tsx
-│   ├── order-form.tsx            # client, will sign EIP-712 in D3
+│   ├── order-form.tsx            # client, validates + submits guarded CLOB orders
 │   └── order-book-view.tsx       # server component, polls CLOB
 ├── lib/
 │   ├── polymarket/
 │   │   ├── gamma.ts              # read API (markets, events)
-│   │   ├── clob.ts               # order book + place order guardrail
+│   │   ├── clob.ts               # server-safe order book reads
+│   │   ├── browser-clob.ts       # browser wallet CLOB signing/submission
 │   │   ├── contracts.ts          # Polygon contract addresses
 │   │   ├── order.ts              # order preview/request types
 │   │   └── types.ts              # narrow types
@@ -77,7 +78,7 @@ src/
 | **D1** | AI | This scaffold ✅ |
 | **D2** | AI | Real Gamma API wiring, market list renders live data ✅ |
 | **D3** | AI | Injected wallet + Polygon switch + pUSD balance/allowance + guarded order preview ✅ |
-| D4 | AI | EIP-712 signing flow and real CLOB order submission |
+| **D4** | AI | Browser-wallet EIP-712 signing + CLOB submission behind live-trading kill switch ✅ |
 | D5 | AI | Portfolio page (positions API) |
 | D6 | AI | Cloudflare geo-block (US/UK/SG/KR/JP), IPQS VPN check |
 | D7 | 龙飞 + AI | Vercel deploy to `credence.gg`, smoke test on testnet wallet |
@@ -127,7 +128,7 @@ src/
 | Place order | `POST https://clob.polymarket.com/order` | EIP-712 sig + L2 API key |
 | Get positions | `GET /positions?user=0x...` | L2 API key |
 
-L2 keys are derived once per address via `ClobClient.deriveApiKey(signer)` and cached server-side.
+L2 keys are derived once per address via `ClobClient.createOrDeriveApiKey(signer)` and cached in the user's browser localStorage for D4. The server never stores user API secrets in the MVP.
 
 ### Polygon trading contracts
 
@@ -138,7 +139,18 @@ L2 keys are derived once per address via `ClobClient.deriveApiKey(signer)` and c
 | Neg Risk CTF Exchange | `0xe2222d279d744050d28e00520010520000310F59` | Negative-risk market order settlement spender |
 | Conditional Tokens | `0x4D97DCd97eC945f40cF65F87097ACe5EA0476045` | Outcome ERC-1155 positions |
 
-D3 stops at pUSD balance + allowance + order preview. D4 implements actual signed order submission. We never accept raw private keys through the browser/API.
+D4 implements browser-wallet signed BUY limit orders through `@polymarket/clob-client`, but live submission is disabled by default. To enable real orders, set:
+
+```env
+NEXT_PUBLIC_ENABLE_REAL_TRADING="true"
+```
+
+Safety guardrails:
+
+- D4 supports BUY limit orders only.
+- D4 caps live orders at 1 pUSD.
+- The user must explicitly confirm in the browser before submission.
+- We never accept raw private keys through the browser/API.
 
 ---
 

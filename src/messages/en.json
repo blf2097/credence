@@ -38,8 +38,9 @@
     "amount_usd": "Amount (pUSD)",
     "shares": "Shares",
     "potential_payout": "Potential payout",
-    "place_order": "Place order",
-    "preview_order": "Preview order",
+    "place_order": "Submit live order",
+    "preview_order": "Validate order path",
+    "submitting_order": "Submitting…",
     "order_book": "Order book",
     "loading": "Loading…"
   },

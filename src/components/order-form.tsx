@@ -6,16 +6,20 @@ import { useAccount, useChainId } from 'wagmi';
 import { polygon } from 'wagmi/chains';
 import { cn, formatProb } from '@/lib/utils';
 import type { GammaMarket } from '@/lib/polymarket/types';
+import type { CreateOrderResponse, OrderPreview } from '@/lib/polymarket/order';
 import { WalletButton } from './wallet-button';
 import { usePolymarketCollateral } from '@/hooks/use-polymarket-collateral';
+import { submitBrowserLimitOrder } from '@/lib/polymarket/browser-clob';
 
 export function OrderForm({ market }: { market: GammaMarket }) {
   const t = useTranslations('market');
   const tWallet = useTranslations('wallet');
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const [side, setSide] = useState<'YES' | 'NO'>('YES');
-  const [amount, setAmount] = useState('10');
+  const [amount, setAmount] = useState('1');
+  const [result, setResult] = useState<CreateOrderResponse | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const collateral = usePolymarketCollateral({
     amount,
     negRisk: market.negRisk,
@@ -24,19 +28,70 @@ export function OrderForm({ market }: { market: GammaMarket }) {
   const yesPrice = parseFloat(market.outcomePrices?.[0] ?? '0.5');
   const noPrice = 1 - yesPrice;
   const price = side === 'YES' ? yesPrice : noPrice;
-  const shares = price > 0 ? parseFloat(amount || '0') / price : 0;
-  const payout = shares * 1; // 1 USDC per share if it resolves
+  const amountNumber = parseFloat(amount || '0');
+  const shares = price > 0 ? amountNumber / price : 0;
+  const payout = shares * 1; // 1 pUSD per winning share if it resolves
+  const isRealTradingEnabled =
+    process.env.NEXT_PUBLIC_ENABLE_REAL_TRADING === 'true';
 
-  const handlePreviewOrder = async () => {
-    // D4 task: wire to /api/orders which calls clob.placeOrder.
-    // D3 deliberately stops at balance + allowance + deterministic preview.
-    alert(
-      `[Preview] ${side} · ${amount} pUSD at ${formatProb(price)}\nShares: ${shares.toFixed(2)}\nSpender: ${collateral.spender}`,
-    );
+  const buildPreview = (): OrderPreview | null => {
+    if (!address) return null;
+    return {
+      marketId: market.id,
+      tokenId: side === 'YES' ? market.clobTokenIds[0] : market.clobTokenIds[1],
+      outcome: side,
+      side: 'BUY',
+      price,
+      size: shares,
+      collateralAmount: amountNumber,
+      trader: address,
+      spender: collateral.spender,
+      tickSize: market.orderPriceMinTickSize ?? '0.01',
+      negRisk: market.negRisk,
+    };
+  };
+
+  const handleSubmitOrder = async () => {
+    const preview = buildPreview();
+    if (!preview) return;
+
+    setIsSubmitting(true);
+    setResult(null);
+    try {
+      const validation = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(preview),
+      }).then((res) => res.json() as Promise<CreateOrderResponse>);
+
+      if (validation.status === 'rejected') {
+        setResult(validation);
+        return;
+      }
+
+      if (isRealTradingEnabled) {
+        const ok = window.confirm(
+          `This will submit a LIVE CLOB order:\n${side} · ${amount} pUSD at ${formatProb(price)}\nShares: ${shares.toFixed(2)}\n\nContinue?`,
+        );
+        if (!ok) {
+          setResult({ status: 'preview', message: 'Live order cancelled.' });
+          return;
+        }
+      }
+
+      const response = await submitBrowserLimitOrder(preview);
+      setResult(response);
+    } catch (err) {
+      setResult({
+        status: 'rejected',
+        message: err instanceof Error ? err.message : 'Unknown order error',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isWrongChain = isConnected && chainId !== polygon.id;
-  const amountNumber = parseFloat(amount || '0');
 
   return (
     <div className="rounded-xl border border-border bg-bg-card p-4 sticky top-20">
@@ -70,7 +125,7 @@ export function OrderForm({ market }: { market: GammaMarket }) {
           onChange={(e) => setAmount(e.target.value)}
           className="w-full bg-transparent outline-none text-fg"
         />
-        <span className="text-fg-subtle text-xs ml-2">USDC</span>
+        <span className="text-fg-subtle text-xs ml-2">pUSD</span>
       </div>
 
       <div className="mt-4 space-y-1 text-sm">
@@ -114,8 +169,8 @@ export function OrderForm({ market }: { market: GammaMarket }) {
           </button>
         ) : (
           <button
-            onClick={handlePreviewOrder}
-            disabled={!market.acceptingOrders || amountNumber <= 0}
+            onClick={handleSubmitOrder}
+            disabled={!market.acceptingOrders || amountNumber <= 0 || isSubmitting}
             className={cn(
               'w-full py-3 rounded-lg font-medium transition-colors',
               side === 'YES'
@@ -124,10 +179,45 @@ export function OrderForm({ market }: { market: GammaMarket }) {
               'disabled:opacity-40 disabled:cursor-not-allowed',
             )}
           >
-            {t('preview_order')}
+            {isSubmitting
+              ? t('submitting_order')
+              : isRealTradingEnabled
+                ? t('place_order')
+                : t('preview_order')}
           </button>
         )}
       </div>
+
+      {result ? (
+        <div
+          className={cn(
+            'mt-3 rounded-lg border px-3 py-2 text-xs leading-relaxed',
+            result.status === 'submitted'
+              ? 'border-accent/50 bg-accent/10 text-accent'
+              : result.status === 'rejected'
+                ? 'border-accent-danger/50 bg-accent-danger/10 text-accent-danger'
+                : 'border-border bg-bg-elevated text-fg-muted',
+          )}
+        >
+          <div>{result.message}</div>
+          {result.orderId ? (
+            <div className="mt-1 font-mono break-all">{result.orderId}</div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!isRealTradingEnabled ? (
+        <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">
+          Live trading is OFF. This button validates the order path only. Set
+          NEXT_PUBLIC_ENABLE_REAL_TRADING=true to enable wallet signing and CLOB
+          submission.
+        </p>
+      ) : (
+        <p className="mt-3 text-[11px] leading-relaxed text-accent-gold">
+          Live trading is ON. D4 caps each order at 1 pUSD and supports BUY
+          limit orders only.
+        </p>
+      )}
     </div>
   );
 }

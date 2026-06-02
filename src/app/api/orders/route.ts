@@ -3,13 +3,12 @@ import type { CreateOrderRequest, CreateOrderResponse } from '@/lib/polymarket/o
 import { validateOrderPreview } from '@/lib/polymarket/order';
 
 /**
- * D3 guardrail endpoint.
+ * D4 order preview validator.
  *
- * This route deliberately does NOT place orders yet. It validates the shape of
- * an order preview and returns 501 until D4 implements the CLOB signing flow.
- *
- * Why so strict? Polymarket CLOB orders require EIP-712 order signing + L2 API
- * credentials. We never accept raw private keys through the browser/API.
+ * Real CLOB signing/submission runs in the browser through the user's injected
+ * wallet (see `browser-clob.ts`) because we never accept raw private keys and
+ * never store user L2 API secrets server-side in the MVP. This endpoint remains
+ * a server-side shape/risk validator for previews and future audit logging.
  */
 export async function POST(req: NextRequest) {
   let payload: Partial<CreateOrderRequest>;
@@ -36,12 +35,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return NextResponse.json<CreateOrderResponse>(
-    {
-      status: 'not_implemented',
-      message:
-        'Order validation passed, but CLOB signing/submission is intentionally disabled until D4.',
-    },
-    { status: 501 },
-  );
+  return NextResponse.json<CreateOrderResponse>({
+    status: 'preview',
+    message:
+      'Order preview validated. Browser wallet signing may continue if live trading is enabled.',
+  });
 }
