@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Position } from '@/lib/polymarket/portfolio';
+import { getErrorMessage, readJsonOrText } from '@/lib/errors';
+import { buildPositionsUrl, normalizePositionsPayload } from '@/lib/polymarket/data-api';
 
-const DATA_API_BASE = 'https://data-api.polymarket.com';
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
+const POSITIONS_TIMEOUT_MS = 8_000;
 
 export async function GET(req: NextRequest) {
   const address = req.nextUrl.searchParams.get('user') ?? '';
@@ -10,42 +11,56 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid user address' }, { status: 400 });
   }
 
-  const url = new URL(`${DATA_API_BASE}/positions`);
-  url.searchParams.set('user', address);
-  url.searchParams.set('limit', req.nextUrl.searchParams.get('limit') ?? '100');
-  url.searchParams.set('offset', req.nextUrl.searchParams.get('offset') ?? '0');
-  url.searchParams.set('sizeThreshold', req.nextUrl.searchParams.get('sizeThreshold') ?? '0');
-  url.searchParams.set('sortBy', req.nextUrl.searchParams.get('sortBy') ?? 'CURRENT');
-  url.searchParams.set(
-    'sortDirection',
-    req.nextUrl.searchParams.get('sortDirection') ?? 'DESC',
-  );
+  const url = buildPositionsUrl({
+    user: address,
+    limit: Number(req.nextUrl.searchParams.get('limit') ?? 100),
+    offset: Number(req.nextUrl.searchParams.get('offset') ?? 0),
+    sizeThreshold: Number(req.nextUrl.searchParams.get('sizeThreshold') ?? 0),
+    sortBy: req.nextUrl.searchParams.get('sortBy') ?? 'CURRENT',
+    sortDirection:
+      req.nextUrl.searchParams.get('sortDirection') === 'ASC' ? 'ASC' : 'DESC',
+  });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), POSITIONS_TIMEOUT_MS);
 
   try {
     const res = await fetch(url, {
+      signal: controller.signal,
+      cache: 'no-store',
       headers: {
         accept: 'application/json',
+        'user-agent': 'Credence-MVP/0.1',
       },
-      next: { revalidate: 15 },
     });
 
+    const payload = await readJsonOrText(res);
     if (!res.ok) {
-      const text = await res.text();
       return NextResponse.json(
-        { error: `Polymarket positions failed: ${res.status}`, detail: text },
+        {
+          error: `Polymarket Data API returned ${res.status}`,
+          detail: getErrorMessage(payload),
+          upstream: url.toString(),
+        },
         { status: res.status },
       );
     }
 
-    const data = (await res.json()) as Position[];
-    return NextResponse.json(data);
+    return NextResponse.json(normalizePositionsPayload(payload));
   } catch (err) {
+    const message = getErrorMessage(err);
     return NextResponse.json(
       {
-        error: 'Polymarket positions request failed',
-        detail: err instanceof Error ? err.message : String(err),
+        error: 'Polymarket Data API is unreachable from the local server',
+        detail:
+          message === 'This operation was aborted'
+            ? `Request timed out after ${POSITIONS_TIMEOUT_MS / 1000}s`
+            : message,
+        upstream: url.toString(),
       },
       { status: 502 },
     );
+  } finally {
+    clearTimeout(timeout);
   }
 }

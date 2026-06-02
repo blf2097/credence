@@ -9,6 +9,7 @@ import {
   type ApiKeyCreds,
   type TickSize,
 } from '@polymarket/clob-client';
+import { getErrorMessage } from '@/lib/errors';
 import type { CreateOrderResponse, OrderPreview } from './order';
 import type { OpenOrder } from './portfolio';
 
@@ -21,9 +22,16 @@ const REAL_TRADING_ENABLED =
 const MAX_D4_COLLATERAL = 1;
 
 export async function getBrowserOpenOrders(address: string): Promise<OpenOrder[]> {
-  const client = await getAuthenticatedBrowserClient(address);
-  const orders = (await client.getOpenOrders()) as OpenOrder[];
-  return Array.isArray(orders) ? orders : [];
+  try {
+    const client = await getAuthenticatedBrowserClient(address);
+    const response = await client.getOpenOrders();
+    if (Array.isArray(response)) return response as OpenOrder[];
+
+    const record = response as { data?: unknown } | undefined;
+    return Array.isArray(record?.data) ? (record.data as OpenOrder[]) : [];
+  } catch (err) {
+    throw new Error(`CLOB open orders failed: ${getErrorMessage(err)}`);
+  }
 }
 
 export async function submitBrowserLimitOrder(

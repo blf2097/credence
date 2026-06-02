@@ -5,6 +5,8 @@ import { useAccount, useChainId } from 'wagmi';
 import { polygon } from 'wagmi/chains';
 import { WalletButton } from '@/components/wallet-button';
 import { cn, formatUSD } from '@/lib/utils';
+import { getErrorMessage, readJsonOrText } from '@/lib/errors';
+import { buildPositionsUrl, normalizePositionsPayload } from '@/lib/polymarket/data-api';
 import type { OpenOrder, Position } from '@/lib/polymarket/portfolio';
 import { summarizePositions } from '@/lib/polymarket/portfolio';
 
@@ -27,12 +29,25 @@ export default function PortfolioPage() {
     setPositionsError(null);
     try {
       const res = await fetch(`/api/positions?user=${address}&limit=100`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? 'Failed to load positions');
-      setPositions(Array.isArray(data) ? (data as Position[]) : []);
+      const data = await readJsonOrText(res);
+      if (!res.ok) {
+        // Some local networks cannot reach data-api.polymarket.com from the
+        // Next.js server process. Try the public API directly from browser
+        // before showing a hard error.
+        const direct = await fetchPositionsDirect(address);
+        setPositions(direct);
+        return;
+      }
+      setPositions(normalizePositionsPayload(data));
     } catch (err) {
-      setPositions([]);
-      setPositionsError(err instanceof Error ? err.message : String(err));
+      try {
+        setPositions(await fetchPositionsDirect(address));
+      } catch (fallbackErr) {
+        setPositions([]);
+        setPositionsError(
+          `Positions unavailable. Local proxy/direct API both failed: ${getErrorMessage(fallbackErr)}.`,
+        );
+      }
     } finally {
       setLoadingPositions(false);
     }
@@ -49,11 +64,24 @@ export default function PortfolioPage() {
       setOpenOrders(await getBrowserOpenOrders(address));
     } catch (err) {
       setOpenOrders([]);
-      setOrdersError(err instanceof Error ? err.message : String(err));
+      setOrdersError(getErrorMessage(err));
     } finally {
       setLoadingOrders(false);
     }
   }, [address, isWrongChain]);
+
+  async function fetchPositionsDirect(wallet: string): Promise<Position[]> {
+    const url = buildPositionsUrl({ user: wallet, limit: 100 });
+    const res = await fetch(url, {
+      headers: { accept: 'application/json' },
+      cache: 'no-store',
+    });
+    const payload = await readJsonOrText(res);
+    if (!res.ok) {
+      throw new Error(`Direct Data API returned ${res.status}: ${getErrorMessage(payload)}`);
+    }
+    return normalizePositionsPayload(payload);
+  }
 
   useEffect(() => {
     if (!address) return;
