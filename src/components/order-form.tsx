@@ -9,7 +9,6 @@ import type { GammaMarket } from '@/lib/polymarket/types';
 import type { CreateOrderResponse, OrderPreview } from '@/lib/polymarket/order';
 import { WalletButton } from './wallet-button';
 import { usePolymarketCollateral } from '@/hooks/use-polymarket-collateral';
-import { submitBrowserLimitOrder } from '@/lib/polymarket/browser-clob';
 
 export function OrderForm({ market }: { market: GammaMarket }) {
   const t = useTranslations('market');
@@ -79,6 +78,9 @@ export function OrderForm({ market }: { market: GammaMarket }) {
         }
       }
 
+      const { submitBrowserLimitOrder } = await import(
+        '@/lib/polymarket/browser-clob'
+      );
       const response = await submitBrowserLimitOrder(preview);
       setResult(response);
     } catch (err) {

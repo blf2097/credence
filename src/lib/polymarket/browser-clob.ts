@@ -10,6 +10,7 @@ import {
   type TickSize,
 } from '@polymarket/clob-client';
 import type { CreateOrderResponse, OrderPreview } from './order';
+import type { OpenOrder } from './portfolio';
 
 const CLOB_HOST =
   process.env.NEXT_PUBLIC_POLYMARKET_CLOB_URL ?? 'https://clob.polymarket.com';
@@ -19,6 +20,11 @@ const REAL_TRADING_ENABLED =
 
 const MAX_D4_COLLATERAL = 1;
 
+export async function getBrowserOpenOrders(address: string): Promise<OpenOrder[]> {
+  const client = await getAuthenticatedBrowserClient(address);
+  const orders = (await client.getOpenOrders()) as OpenOrder[];
+  return Array.isArray(orders) ? orders : [];
+}
 
 export async function submitBrowserLimitOrder(
   preview: OrderPreview,
@@ -52,27 +58,7 @@ export async function submitBrowserLimitOrder(
     };
   }
 
-  const signer = new ethers.providers.Web3Provider(
-    window.ethereum,
-    'any',
-  ).getSigner();
-  const signerAddress = await signer.getAddress();
-
-  if (signerAddress.toLowerCase() !== preview.trader.toLowerCase()) {
-    return {
-      status: 'rejected',
-      message: 'Connected wallet changed. Refresh and retry.',
-    };
-  }
-
-  const bootstrapClient = new ClobClient(CLOB_HOST, Chain.POLYGON, signer);
-  const creds = await getOrCreateApiCreds(preview.trader, bootstrapClient);
-  const client = new ClobClient(
-    CLOB_HOST,
-    Chain.POLYGON,
-    signer,
-    creds,
-  );
+  const client = await getAuthenticatedBrowserClient(preview.trader);
 
   const response = await client.createAndPostOrder(
     {
@@ -89,6 +75,26 @@ export async function submitBrowserLimitOrder(
   );
 
   return normalizeClobResponse(response);
+}
+
+async function getAuthenticatedBrowserClient(address: string): Promise<ClobClient> {
+  if (!window.ethereum) {
+    throw new Error('No injected wallet found. Install MetaMask/Rabby/OKX Wallet.');
+  }
+
+  const signer = new ethers.providers.Web3Provider(
+    window.ethereum,
+    'any',
+  ).getSigner();
+  const signerAddress = await signer.getAddress();
+
+  if (signerAddress.toLowerCase() !== address.toLowerCase()) {
+    throw new Error('Connected wallet changed. Refresh and retry.');
+  }
+
+  const bootstrapClient = new ClobClient(CLOB_HOST, Chain.POLYGON, signer);
+  const creds = await getOrCreateApiCreds(address, bootstrapClient);
+  return new ClobClient(CLOB_HOST, Chain.POLYGON, signer, creds);
 }
 
 async function getOrCreateApiCreds(
