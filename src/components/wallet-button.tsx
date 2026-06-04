@@ -14,10 +14,20 @@ import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 
 const WALLET_CONNECT_PENDING_EVENT = 'credence:wallet-connect-pending';
+const CONNECT_PENDING_STALE_MS = 8_000;
 let globalConnectPending = false;
+let globalConnectPendingStartedAt = 0;
+
+function isGlobalConnectPendingActive() {
+  return (
+    globalConnectPending &&
+    Date.now() - globalConnectPendingStartedAt < CONNECT_PENDING_STALE_MS
+  );
+}
 
 function setGlobalConnectPending(value: boolean) {
   globalConnectPending = value;
+  globalConnectPendingStartedAt = value ? Date.now() : 0;
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(WALLET_CONNECT_PENDING_EVENT));
   }
@@ -41,13 +51,21 @@ export function WalletButton({ className }: { className?: string }) {
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const [hasInjectedWallet, setHasInjectedWallet] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [globalPending, setGlobalPending] = useState(globalConnectPending);
+  const [globalPending, setGlobalPending] = useState(
+    isGlobalConnectPendingActive(),
+  );
 
   useEffect(() => {
     const checkWallet = () => {
       setHasInjectedWallet(Boolean(window.ethereum));
     };
-    const syncGlobalPending = () => setGlobalPending(globalConnectPending);
+    const syncGlobalPending = () => {
+      const active = isGlobalConnectPendingActive();
+      setGlobalPending(active);
+      if (!active && globalConnectPending) {
+        setGlobalConnectPending(false);
+      }
+    };
 
     checkWallet();
     syncGlobalPending();
@@ -55,10 +73,12 @@ export function WalletButton({ className }: { className?: string }) {
       once: true,
     });
     window.addEventListener(WALLET_CONNECT_PENDING_EVENT, syncGlobalPending);
-    const timer = window.setTimeout(checkWallet, 500);
+    const walletTimer = window.setTimeout(checkWallet, 500);
+    const pendingTimer = window.setInterval(syncGlobalPending, 1_000);
 
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(walletTimer);
+      window.clearInterval(pendingTimer);
       window.removeEventListener('ethereum#initialized', checkWallet);
       window.removeEventListener(WALLET_CONNECT_PENDING_EVENT, syncGlobalPending);
     };
@@ -82,9 +102,13 @@ export function WalletButton({ className }: { className?: string }) {
       setError(t('connector_unavailable'));
       return;
     }
-    if (globalConnectPending) {
+    if (isGlobalConnectPendingActive()) {
       setError(t('request_pending'));
       return;
+    }
+
+    if (globalConnectPending) {
+      setGlobalConnectPending(false);
     }
 
     setGlobalConnectPending(true);

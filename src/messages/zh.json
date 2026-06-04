@@ -54,7 +54,7 @@
     "install_wallet": "安装钱包",
     "no_injected_wallet": "当前浏览器没有检测到 MetaMask / Rabby / OKX 等注入式钱包。请用带钱包插件的浏览器打开，而不是 WorkBuddy 内置预览面板。",
     "connector_unavailable": "钱包连接器不可用，请刷新页面后重试。",
-    "request_pending": "钱包连接请求已经在等待确认。请先处理浏览器钱包弹窗，不要在多个页面重复点击 Connect Wallet。",
+    "request_pending": "钱包插件仍有一个未完成的连接请求。请打开钱包插件处理或关闭那个请求；如果插件里没有弹窗，等待几秒后可在当前页面重新点击连接。",
     "balance_usdc": "pUSD 余额",
     "allowance": "授权额度",
     "approve_usdc": "授权 pUSD",
