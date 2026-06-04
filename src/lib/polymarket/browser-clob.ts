@@ -19,7 +19,12 @@ const CLOB_HOST =
 const REAL_TRADING_ENABLED =
   process.env.NEXT_PUBLIC_ENABLE_REAL_TRADING === 'true';
 
+const POLYGON_CHAIN_HEX = '0x89';
 const MAX_D4_COLLATERAL = 1;
+
+type InjectedProvider = ethers.providers.ExternalProvider & {
+  request?: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
 
 export async function getBrowserOpenOrders(address: string): Promise<OpenOrder[]> {
   try {
@@ -86,14 +91,18 @@ export async function submitBrowserLimitOrder(
 }
 
 async function getAuthenticatedBrowserClient(address: string): Promise<ClobClient> {
-  if (!window.ethereum) {
-    throw new Error('No injected wallet found. Install MetaMask/Rabby/OKX Wallet.');
+  const ethereum = getInjectedProvider();
+  await ensurePolygonNetwork(ethereum);
+
+  const provider = new ethers.providers.Web3Provider(ethereum, 'any');
+  const activeNetwork = await provider.getNetwork();
+  if (activeNetwork.chainId !== Chain.POLYGON) {
+    throw new Error(
+      `Wallet is still on chain ${activeNetwork.chainId}. Please switch to Polygon and retry.`,
+    );
   }
 
-  const signer = new ethers.providers.Web3Provider(
-    window.ethereum,
-    'any',
-  ).getSigner();
+  const signer = provider.getSigner();
   const signerAddress = await signer.getAddress();
 
   if (signerAddress.toLowerCase() !== address.toLowerCase()) {
@@ -103,6 +112,51 @@ async function getAuthenticatedBrowserClient(address: string): Promise<ClobClien
   const bootstrapClient = new ClobClient(CLOB_HOST, Chain.POLYGON, signer);
   const creds = await getOrCreateApiCreds(address, bootstrapClient);
   return new ClobClient(CLOB_HOST, Chain.POLYGON, signer, creds);
+}
+
+function getInjectedProvider(): InjectedProvider {
+  const ethereum = window.ethereum as InjectedProvider | undefined;
+  if (!ethereum?.request) {
+    throw new Error('No injected wallet found. Install MetaMask/Rabby/OKX Wallet.');
+  }
+  return ethereum;
+}
+
+async function ensurePolygonNetwork(ethereum: InjectedProvider) {
+  const chainId = await ethereum.request?.({ method: 'eth_chainId' });
+  if (chainId === POLYGON_CHAIN_HEX) return;
+
+  try {
+    await ethereum.request?.({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: POLYGON_CHAIN_HEX }],
+    });
+  } catch (err) {
+    const record = err as { code?: number; message?: string };
+    if (record.code === 4902) {
+      await ethereum.request?.({
+        method: 'wallet_addEthereumChain',
+        params: [
+          {
+            chainId: POLYGON_CHAIN_HEX,
+            chainName: 'Polygon Mainnet',
+            nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
+            rpcUrls: ['https://polygon-rpc.com'],
+            blockExplorerUrls: ['https://polygonscan.com'],
+          },
+        ],
+      });
+    } else if (record.code === 4001) {
+      throw new Error('Wallet network switch rejected. Please switch to Polygon mainnet and retry.');
+    } else {
+      throw new Error(`Wallet network switch failed: ${getErrorMessage(err)}`);
+    }
+  }
+
+  const nextChainId = await ethereum.request?.({ method: 'eth_chainId' });
+  if (nextChainId !== POLYGON_CHAIN_HEX) {
+    throw new Error('Wallet is not on Polygon mainnet after switch. Please retry after the wallet finishes switching.');
+  }
 }
 
 async function getOrCreateApiCreds(
