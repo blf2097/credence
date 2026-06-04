@@ -9,6 +9,7 @@ import type { GammaMarket } from '@/lib/polymarket/types';
 import type { CreateOrderResponse, OrderPreview } from '@/lib/polymarket/order';
 import { WalletButton } from './wallet-button';
 import { usePolymarketCollateral } from '@/hooks/use-polymarket-collateral';
+import { useRiskAcknowledgement } from '@/hooks/use-risk-acknowledgement';
 
 export function OrderForm({ market }: { market: GammaMarket }) {
   const t = useTranslations('market');
@@ -19,6 +20,8 @@ export function OrderForm({ market }: { market: GammaMarket }) {
   const [amount, setAmount] = useState('1');
   const [result, setResult] = useState<CreateOrderResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { acknowledged: riskAcknowledged, ready: riskReady } =
+    useRiskAcknowledgement();
   const collateral = usePolymarketCollateral({
     amount,
     negRisk: market.negRisk,
@@ -150,6 +153,13 @@ export function OrderForm({ market }: { market: GammaMarket }) {
       <div className="mt-4 space-y-2">
         {!isConnected || isWrongChain ? (
           <WalletButton className="w-full py-3" />
+        ) : riskReady && !riskAcknowledged ? (
+          <button
+            disabled
+            className="w-full py-3 rounded-lg bg-bg-elevated text-fg-muted font-medium border border-border cursor-not-allowed"
+          >
+            Accept risk disclosure first
+          </button>
         ) : isRealTradingEnabled && !collateral.hasEnoughBalance ? (
           <button
             disabled

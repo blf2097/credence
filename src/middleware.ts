@@ -17,12 +17,28 @@ const blockedCountries = (process.env.GEO_BLOCK_COUNTRIES ?? '')
 
 export default function middleware(req: NextRequest) {
   const country = req.headers.get('cf-ipcountry')?.toUpperCase() ?? '';
-  if (country && blockedCountries.includes(country)) {
-    return new NextResponse('Service not available in your region.', {
-      status: 451,
-    });
+  const pathname = req.nextUrl.pathname;
+
+  if (country && blockedCountries.includes(country) && !isBlockedPage(pathname)) {
+    const locale = getPathLocale(pathname);
+    const url = req.nextUrl.clone();
+    url.pathname = `/${locale}/blocked`;
+    url.searchParams.set('country', country);
+    return NextResponse.redirect(url, { status: 307 });
   }
+
   return intlMiddleware(req);
+}
+
+function getPathLocale(pathname: string) {
+  const maybeLocale = pathname.split('/')[1];
+  return locales.includes(maybeLocale as (typeof locales)[number])
+    ? maybeLocale
+    : defaultLocale;
+}
+
+function isBlockedPage(pathname: string) {
+  return pathname === '/blocked' || pathname.endsWith('/blocked');
 }
 
 export const config = {
