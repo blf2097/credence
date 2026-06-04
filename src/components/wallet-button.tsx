@@ -13,6 +13,25 @@ import { polygon } from 'wagmi/chains';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 
+const WALLET_CONNECT_PENDING_EVENT = 'credence:wallet-connect-pending';
+let globalConnectPending = false;
+
+function setGlobalConnectPending(value: boolean) {
+  globalConnectPending = value;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(WALLET_CONNECT_PENDING_EVENT));
+  }
+}
+
+function isWalletRequestPendingError(error: unknown) {
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    message.includes('wallet_requestpermissions') ||
+    message.includes('already pending') ||
+    message.includes('-32002')
+  );
+}
+
 export function WalletButton({ className }: { className?: string }) {
   const t = useTranslations('wallet');
   const { address, isConnected } = useAccount();
@@ -22,21 +41,26 @@ export function WalletButton({ className }: { className?: string }) {
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const [hasInjectedWallet, setHasInjectedWallet] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [globalPending, setGlobalPending] = useState(globalConnectPending);
 
   useEffect(() => {
     const checkWallet = () => {
       setHasInjectedWallet(Boolean(window.ethereum));
     };
+    const syncGlobalPending = () => setGlobalPending(globalConnectPending);
 
     checkWallet();
+    syncGlobalPending();
     window.addEventListener('ethereum#initialized', checkWallet, {
       once: true,
     });
+    window.addEventListener(WALLET_CONNECT_PENDING_EVENT, syncGlobalPending);
     const timer = window.setTimeout(checkWallet, 500);
 
     return () => {
       window.clearTimeout(timer);
       window.removeEventListener('ethereum#initialized', checkWallet);
+      window.removeEventListener(WALLET_CONNECT_PENDING_EVENT, syncGlobalPending);
     };
   }, []);
 
@@ -58,11 +82,18 @@ export function WalletButton({ className }: { className?: string }) {
       setError(t('connector_unavailable'));
       return;
     }
+    if (globalConnectPending) {
+      setError(t('request_pending'));
+      return;
+    }
 
+    setGlobalConnectPending(true);
     try {
       await connectAsync({ connector: injectedConnector });
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(isWalletRequestPendingError(err) ? t('request_pending') : getErrorMessage(err));
+    } finally {
+      setGlobalConnectPending(false);
     }
   };
 
@@ -88,11 +119,11 @@ export function WalletButton({ className }: { className?: string }) {
             'rounded-lg bg-fg px-3 py-2 text-sm font-medium text-bg hover:opacity-90 disabled:opacity-50',
             className,
           )}
-          disabled={hasInjectedWallet === null || isConnecting}
+          disabled={hasInjectedWallet === null || isConnecting || globalPending}
           onClick={handleConnect}
           title={hasInjectedWallet === false ? t('no_injected_wallet') : undefined}
         >
-          {isConnecting
+          {isConnecting || globalPending
             ? t('connecting')
             : hasInjectedWallet === false
               ? t('install_wallet')

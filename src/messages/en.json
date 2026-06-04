@@ -54,6 +54,7 @@
     "install_wallet": "Install Wallet",
     "no_injected_wallet": "No injected wallet detected in this browser. Open the app in a browser with MetaMask, Rabby, OKX Wallet, or another injected wallet extension — not the WorkBuddy preview panel.",
     "connector_unavailable": "Wallet connector unavailable. Refresh and retry.",
+    "request_pending": "A wallet connection request is already waiting for confirmation. Finish the wallet popup first instead of clicking Connect Wallet in multiple places.",
     "balance_usdc": "pUSD balance",
     "allowance": "Allowance",
     "approve_usdc": "Approve pUSD",
