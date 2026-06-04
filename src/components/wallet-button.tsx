@@ -42,6 +42,22 @@ function isWalletRequestPendingError(error: unknown) {
   );
 }
 
+function isUnsupportedMethodError(error: unknown) {
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    message.includes('unsupported') ||
+    message.includes('method not found') ||
+    message.includes('-32601')
+  );
+}
+
+function clearWagmiWalletStorage() {
+  for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
+    const key = window.localStorage.key(i);
+    if (key?.startsWith('wagmi.')) window.localStorage.removeItem(key);
+  }
+}
+
 export function WalletButton({ className }: { className?: string }) {
   const t = useTranslations('wallet');
   const { address, isConnected } = useAccount();
@@ -130,14 +146,43 @@ export function WalletButton({ className }: { className?: string }) {
     }
   };
 
+  const handleResetConnection = async () => {
+    setGlobalConnectPending(false);
+    setError(null);
+    disconnect();
+    clearWagmiWalletStorage();
+
+    try {
+      await window.ethereum?.request?.({
+        method: 'wallet_revokePermissions',
+        params: [{ eth_accounts: {} }],
+      });
+    } catch (err) {
+      // Revocation is best-effort. Some wallets do not support it, and it
+      // cannot cancel an already-open wallet permission popup.
+      if (!isUnsupportedMethodError(err) && !isWalletRequestPendingError(err)) {
+        setError(getErrorMessage(err));
+        return;
+      }
+    }
+
+    setError(t('connection_reset'));
+  };
+
   const handleDisconnect = () => {
     setError(null);
+    setGlobalConnectPending(false);
     disconnect();
   };
 
   if (!isConnected) {
     return (
-      <WalletButtonShell error={error}>
+      <WalletButtonShell
+        error={error}
+        showReset={Boolean(error)}
+        onReset={handleResetConnection}
+        resetLabel={t('reset_connection')}
+      >
         <button
           className={cn(
             'rounded-lg bg-fg px-3 py-2 text-sm font-medium text-bg hover:opacity-90 disabled:opacity-50',
@@ -159,7 +204,12 @@ export function WalletButton({ className }: { className?: string }) {
 
   if (chainId !== polygon.id) {
     return (
-      <WalletButtonShell error={error}>
+      <WalletButtonShell
+        error={error}
+        showReset={Boolean(error)}
+        onReset={handleResetConnection}
+        resetLabel={t('reset_connection')}
+      >
         <button
           className={cn(
             'rounded-lg bg-accent-gold px-3 py-2 text-sm font-medium text-bg hover:opacity-90 disabled:opacity-50',
@@ -193,16 +243,31 @@ export function WalletButton({ className }: { className?: string }) {
 function WalletButtonShell({
   children,
   error,
+  showReset = false,
+  onReset,
+  resetLabel,
 }: {
   children: React.ReactNode;
   error: string | null;
+  showReset?: boolean;
+  onReset?: () => void;
+  resetLabel?: string;
 }) {
   return (
     <div className="relative inline-flex flex-col items-stretch gap-1">
       {children}
       {error ? (
-        <div className="absolute right-0 top-full mt-2 w-72 rounded-lg border border-accent-danger/50 bg-bg-card p-2 text-xs leading-relaxed text-accent-danger shadow-xl z-50">
-          {error}
+        <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-accent-danger/50 bg-bg-card p-2 text-xs leading-relaxed text-accent-danger shadow-xl z-50">
+          <div>{error}</div>
+          {showReset && onReset ? (
+            <button
+              type="button"
+              onClick={onReset}
+              className="mt-2 rounded border border-border px-2 py-1 text-fg-muted hover:text-fg"
+            >
+              {resetLabel ?? 'Reset connection state'}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
