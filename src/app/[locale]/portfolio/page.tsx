@@ -19,6 +19,8 @@ export default function PortfolioPage() {
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [loadingPositions, setLoadingPositions] = useState(false);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [hasLoadedOpenOrders, setHasLoadedOpenOrders] = useState(false);
+  const [openOrdersLoadedAt, setOpenOrdersLoadedAt] = useState<Date | null>(null);
 
   const summary = useMemo(() => summarizePositions(positions), [positions]);
   const isWrongChain = isConnected && chainId !== polygon.id;
@@ -61,7 +63,10 @@ export default function PortfolioPage() {
       const { getBrowserOpenOrders } = await import(
         '@/lib/polymarket/browser-clob'
       );
-      setOpenOrders(await getBrowserOpenOrders(address));
+      const orders = await getBrowserOpenOrders(address);
+      setOpenOrders(orders);
+      setHasLoadedOpenOrders(true);
+      setOpenOrdersLoadedAt(new Date());
     } catch (err) {
       setOpenOrders([]);
       setOrdersError(getErrorMessage(err));
@@ -85,6 +90,10 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     if (!address) return;
+    setOpenOrders([]);
+    setOrdersError(null);
+    setHasLoadedOpenOrders(false);
+    setOpenOrdersLoadedAt(null);
     void loadPositions();
   }, [address, loadPositions]);
 
@@ -163,13 +172,20 @@ export default function PortfolioPage() {
 
         <div className="rounded-xl border border-border bg-bg-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="font-medium">Open orders</h2>
+            <div>
+              <h2 className="font-medium">Open orders</h2>
+              {openOrdersLoadedAt ? (
+                <div className="mt-0.5 text-[10px] text-fg-subtle">
+                  Loaded {openOrdersLoadedAt.toLocaleTimeString()}
+                </div>
+              ) : null}
+            </div>
             <button
               onClick={() => void loadOpenOrders()}
               disabled={loadingOrders || isWrongChain}
               className="text-xs text-fg-muted hover:text-fg disabled:opacity-40"
             >
-              {loadingOrders ? 'Loading…' : 'Load'}
+              {loadingOrders ? 'Loading…' : hasLoadedOpenOrders ? 'Reload' : 'Load'}
             </button>
           </div>
           {ordersError ? (
@@ -180,6 +196,8 @@ export default function PortfolioPage() {
                 <OpenOrderRow key={order.id} order={order} />
               ))}
             </div>
+          ) : hasLoadedOpenOrders ? (
+            <SuccessEmptyBox text="已成功读取 CLOB。这个钱包当前没有 open orders。" />
           ) : (
             <EmptyBox text="点击 Load 读取 CLOB 当前挂单。首次读取可能需要钱包签名派生 API key。" />
           )}
@@ -274,6 +292,14 @@ function OpenOrderRow({ order }: { order: OpenOrder }) {
 
 function EmptyBox({ text }: { text: string }) {
   return <div className="p-6 text-sm text-fg-muted leading-relaxed">{text}</div>;
+}
+
+function SuccessEmptyBox({ text }: { text: string }) {
+  return (
+    <div className="m-4 rounded-lg border border-accent/40 bg-accent/10 p-3 text-sm text-accent leading-relaxed">
+      {text}
+    </div>
+  );
 }
 
 function ErrorBox({ message }: { message: string }) {
