@@ -29,6 +29,8 @@ Open `http://localhost:3000` — you'll be redirected to `/zh`.
 
 Other vars in `.env.example` can stay empty for normal dev. WalletConnect QR is intentionally disabled; injected wallets (MetaMask/Rabby/OKX) are supported first. Real CLOB submission is behind `NEXT_PUBLIC_ENABLE_REAL_TRADING=true` and capped at 1 pUSD per D4 order.
 
+Deployment checklist: [`docs/deploy-checklist.md`](./docs/deploy-checklist.md).
+
 ---
 
 ## Project structure
@@ -79,9 +81,9 @@ src/
 | **D2** | AI | Real Gamma API wiring, market list renders live data ✅ |
 | **D3** | AI | Injected wallet + Polygon switch + pUSD balance/allowance + guarded order preview ✅ |
 | **D4** | AI | Browser-wallet EIP-712 signing + CLOB submission behind live-trading kill switch ✅ |
-| D5 | AI | Portfolio page (positions API) |
-| D6 | AI | Cloudflare geo-block (US/UK/SG/KR/JP), IPQS VPN check |
-| D7 | 龙飞 + AI | Vercel deploy to `credence.gg`, smoke test on testnet wallet |
+| **D5** | AI | Portfolio page, public positions, open orders, lazy CLOB bundle ✅ |
+| **D6** | AI | Geo-block page, risk acknowledgement gate, wallet recovery hardening ✅ |
+| **D7** | 龙飞 + AI | Vercel/Cloudflare deployment checklist and production smoke-test prep ✅ |
 | D8 | AI | Telegram Bot skeleton (notify on resolution) |
 | D9 | AI | Supabase event tracking |
 | D10 | 龙飞 | Engage law firm (Tilleke/SyCip), Termly subscribe, replace placeholder legal |
