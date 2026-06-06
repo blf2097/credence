@@ -1,0 +1,44 @@
+[
+  {
+    "id": "ev:cross-border-ecommerce-growth",
+    "title": "跨境电商平台和供应链服务企业继续扩张",
+    "observedAt": "2026-06-06T00:00:00.000Z",
+    "summary": "跨境电商、物流和海外仓基础设施继续完善，支持中小企业低成本试错海外市场。",
+    "supportsModelIds": ["wm:china-enterprise-globalization"],
+    "opposesModelIds": [],
+    "affectedVariableIds": ["海外收入占比", "本地化团队密度"],
+    "bayesUpdate": {
+      "prior": 0.58,
+      "posterior": 0.62,
+      "rationale": "基础设施改善提高出海成功率，但不直接解决品牌和合规问题。"
+    }
+  },
+  {
+    "id": "ev:trade-barrier-tightening",
+    "title": "主要目的地市场贸易与数据合规要求趋严",
+    "observedAt": "2026-06-06T00:00:00.000Z",
+    "summary": "海外市场对供应链来源、数据合规、消费者保护和平台责任提出更高要求。",
+    "supportsModelIds": [],
+    "opposesModelIds": ["wm:china-enterprise-globalization"],
+    "affectedVariableIds": ["合规处罚频次", "品牌溢价能力"],
+    "bayesUpdate": {
+      "prior": 0.66,
+      "posterior": 0.62,
+      "rationale": "监管摩擦降低低质量出海企业成功率，强化结构分化判断。"
+    }
+  },
+  {
+    "id": "ev:ai-localization-cost-drop",
+    "title": "AI 降低海外内容、客服与销售本地化成本",
+    "observedAt": "2026-06-06T00:00:00.000Z",
+    "summary": "LLM 和 agent 工具降低跨语言内容生产、客服响应、广告素材和销售线索处理成本。",
+    "supportsModelIds": ["wm:china-enterprise-globalization"],
+    "opposesModelIds": [],
+    "affectedVariableIds": ["AI 工具渗透率", "本地化团队密度"],
+    "bayesUpdate": {
+      "prior": 0.60,
+      "posterior": 0.62,
+      "rationale": "AI 工具改善本地化效率，但短期仍受组织能力限制。"
+    }
+  }
+]

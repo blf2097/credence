@@ -1,0 +1,25 @@
+[
+  {
+    "id": "wm:china-enterprise-globalization",
+    "title": "中国企业出海业务发展模型",
+    "thesis": "中国企业出海不是单一趋势，而是供应链能力、品牌能力、合规能力、AI 工具化和本地化运营能力共同作用的分化过程。",
+    "confidence": 0.62,
+    "horizon": "2026-2028",
+    "assumptions": [
+      "国内需求增速放缓会继续推动企业寻找海外增量。",
+      "海外监管、贸易壁垒和本地化能力会显著分化企业表现。",
+      "AI 工具会降低内容、客服、运营和销售本地化成本。"
+    ],
+    "variables": [
+      "海外收入占比",
+      "本地化团队密度",
+      "合规处罚频次",
+      "AI 工具渗透率",
+      "品牌溢价能力"
+    ],
+    "predictionMarketIds": ["credence:china-enterprise-globalization-world-model"],
+    "supportingEvidenceIds": ["ev:cross-border-ecommerce-growth", "ev:ai-localization-cost-drop"],
+    "opposingEvidenceIds": ["ev:trade-barrier-tightening"],
+    "competingModelIds": []
+  }
+]

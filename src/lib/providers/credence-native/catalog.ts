@@ -1,5 +1,5 @@
 import type { PredictionMarket } from '@/lib/core/market';
-import { credenceNativeMarkets } from './mock-skus';
+import { credenceNativeMarkets } from './content-loader';
 
 export async function listCredenceNativeMarkets(): Promise<PredictionMarket[]> {
   return credenceNativeMarkets;
