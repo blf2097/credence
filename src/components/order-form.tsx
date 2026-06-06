@@ -5,9 +5,9 @@ import { useTranslations } from 'next-intl';
 import { useAccount, useChainId } from 'wagmi';
 import { polygon } from 'wagmi/chains';
 import { cn, formatProb } from '@/lib/utils';
+import { getTradingAdapter } from '@/lib/core/trading/registry';
 import type { PredictionMarket } from '@/lib/core/market';
-import { getRawPolymarketMarket } from '@/lib/providers/polymarket/adapter';
-import type { CreateOrderResponse, OrderPreview } from '@/lib/polymarket/order';
+import type { CreateOrderResponse } from '@/lib/polymarket/order';
 import { WalletButton } from './wallet-button';
 import { usePolymarketCollateral } from '@/hooks/use-polymarket-collateral';
 import { useRiskAcknowledgement } from '@/hooks/use-risk-acknowledgement';
@@ -23,7 +23,7 @@ export function OrderForm({ market }: { market: PredictionMarket }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { acknowledged: riskAcknowledged, ready: riskReady } =
     useRiskAcknowledgement();
-  const rawPolymarketMarket = getRawPolymarketMarket(market);
+  const tradingAdapter = getTradingAdapter(market, { realTradingEnabled: false });
   const yesOutcome = market.outcomes[0];
   const noOutcome = market.outcomes[1];
   const collateral = usePolymarketCollateral({
@@ -40,27 +40,44 @@ export function OrderForm({ market }: { market: PredictionMarket }) {
   const isRealTradingEnabled =
     process.env.NEXT_PUBLIC_ENABLE_REAL_TRADING === 'true';
 
-  const buildPreview = (): OrderPreview | null => {
-    if (!address) return null;
+  const buildTradeIntent = () => {
     const selectedOutcome = side === 'YES' ? yesOutcome : noOutcome;
-    if (!selectedOutcome?.tokenId) return null;
+    if (!selectedOutcome) return null;
     return {
-      marketId: market.source.externalId,
-      tokenId: selectedOutcome.tokenId,
-      outcome: side,
-      side: 'BUY',
+      market,
+      outcome: selectedOutcome,
+      side: 'BUY' as const,
+      amount: amountNumber,
       price,
-      size: shares,
-      collateralAmount: amountNumber,
+      shares,
       trader: address,
       spender: collateral.spender,
-      tickSize: market.trading.minTickSize ?? '0.01',
-      negRisk: market.trading.negRisk,
     };
   };
 
+  const buildPreview = () => {
+    const intent = buildTradeIntent();
+    if (!intent || !tradingAdapter) return null;
+    return tradingAdapter.buildPreview(intent);
+  };
+
   const handleSubmitOrder = async () => {
-    const preview = buildPreview();
+    const intent = buildTradeIntent();
+    if (!intent || !tradingAdapter) {
+      setResult({ status: 'rejected', message: 'This market is not tradable yet.' });
+      return;
+    }
+
+    const intentValidation = tradingAdapter.validateIntent(intent);
+    if (!intentValidation.ok) {
+      setResult({
+        status: 'rejected',
+        message: intentValidation.reason ?? 'Invalid trade intent.',
+      });
+      return;
+    }
+
+    const preview = tradingAdapter.buildPreview(intent);
     if (!preview) return;
 
     setIsSubmitting(true);
@@ -87,10 +104,7 @@ export function OrderForm({ market }: { market: PredictionMarket }) {
         }
       }
 
-      const { submitBrowserLimitOrder } = await import(
-        '@/lib/polymarket/browser-clob'
-      );
-      const response = await submitBrowserLimitOrder(preview);
+      const response = await tradingAdapter.submitPreview(preview);
       setResult(response);
     } catch (err) {
       setResult({
@@ -188,7 +202,7 @@ export function OrderForm({ market }: { market: PredictionMarket }) {
         ) : (
           <button
             onClick={handleSubmitOrder}
-            disabled={!market.trading.acceptingOrders || amountNumber <= 0 || isSubmitting || !rawPolymarketMarket}
+            disabled={!market.trading.acceptingOrders || amountNumber <= 0 || isSubmitting || !tradingAdapter}
             className={cn(
               'w-full py-3 rounded-lg font-medium transition-colors',
               side === 'YES'
