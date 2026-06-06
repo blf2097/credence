@@ -9,6 +9,7 @@ export function MarketCard({ market }: { market: PredictionMarket }) {
   const primaryOutcome = getPrimaryOutcome(market);
   const category = market.category ? market.category.toUpperCase() : market.kind.toUpperCase();
   const marketPathId = market.source.externalId;
+  const isNative = market.provider === 'credence';
 
   return (
     <Link
@@ -31,7 +32,7 @@ export function MarketCard({ market }: { market: PredictionMarket }) {
 
         <div className="min-w-0 flex-1">
           <div className="text-[10px] tracking-wider text-fg-subtle mb-1">
-            {category}
+            {isNative ? 'CREDENCE' : category} · {market.kind.toUpperCase()}
           </div>
           <h3 className="font-medium text-sm leading-snug line-clamp-3">
             {market.title}
@@ -49,8 +50,8 @@ export function MarketCard({ market }: { market: PredictionMarket }) {
       </div>
 
       <div className="mt-4 flex items-center justify-between text-xs text-fg-muted">
-        <span>Vol {formatUSD(market.metrics.volume ?? 0)}</span>
-        <span>24h {formatUSD(market.metrics.volume24hr ?? 0)}</span>
+        <span>{isNative ? market.trading.mode : `Vol ${formatUSD(market.metrics.volume ?? 0)}`}</span>
+        <span>{isNative ? market.settlementType : `24h ${formatUSD(market.metrics.volume24hr ?? 0)}`}</span>
       </div>
       <div className="mt-1 flex items-center justify-between text-xs text-fg-subtle">
         <span>Liq {formatUSD(market.metrics.liquidity ?? 0)}</span>

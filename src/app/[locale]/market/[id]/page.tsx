@@ -1,6 +1,7 @@
 import { getPredictionMarket } from '@/lib/core/catalog';
-import { getPrimaryOutcome } from '@/lib/core/market';
+import { getPrimaryOutcome, type PredictionMarket } from '@/lib/core/market';
 import { OrderForm } from '@/components/order-form';
+import { NativeSignalForm } from '@/components/native-signal-form';
 import { OrderBookView } from '@/components/order-book-view';
 import { RiskAcknowledgement } from '@/components/risk-acknowledgement';
 import { formatProb, formatUSD } from '@/lib/utils';
@@ -44,12 +45,50 @@ export default async function MarketDetailPage({
           <p className="text-fg-muted whitespace-pre-line">
             {market.description}
           </p>
-          <OrderBookView tokenId={primaryOutcome?.tokenId} />
+          {market.provider === 'credence' ? (
+            <NativeMarketContext market={market} />
+          ) : (
+            <OrderBookView tokenId={primaryOutcome?.tokenId} />
+          )}
         </div>
         <aside className="md:col-span-1">
-          <OrderForm market={market} />
+          {market.provider === 'credence' ? (
+            <NativeSignalForm market={market} />
+          ) : (
+            <OrderForm market={market} />
+          )}
         </aside>
       </div>
     </>
+  );
+}
+
+function NativeMarketContext({ market }: { market: PredictionMarket }) {
+  const nativeType = String(market.metadata?.nativeType ?? market.kind);
+  const resolutionRule = String(market.metadata?.resolutionRule ?? 'No resolution rule yet.');
+  return (
+    <div className="rounded-xl border border-border bg-bg-card p-4">
+      <div className="text-[10px] tracking-wider text-fg-subtle mb-1">
+        CREDENCE NATIVE · {nativeType.toUpperCase()}
+      </div>
+      <h3 className="text-sm font-medium">SKU Context</h3>
+      <div className="mt-3 grid gap-2 text-sm text-fg-muted">
+        <div>
+          <span className="text-fg-subtle">Provider:</span> {market.provider}
+        </div>
+        <div>
+          <span className="text-fg-subtle">Kind:</span> {market.kind}
+        </div>
+        <div>
+          <span className="text-fg-subtle">Settlement:</span> {market.settlementType}
+        </div>
+        <div>
+          <span className="text-fg-subtle">Trading mode:</span> {market.trading.mode}
+        </div>
+        <div className="pt-2 text-xs leading-relaxed">
+          <span className="text-fg-subtle">Resolution:</span> {resolutionRule}
+        </div>
+      </div>
+    </div>
   );
 }
