@@ -5,13 +5,14 @@ import { useTranslations } from 'next-intl';
 import { useAccount, useChainId } from 'wagmi';
 import { polygon } from 'wagmi/chains';
 import { cn, formatProb } from '@/lib/utils';
-import type { GammaMarket } from '@/lib/polymarket/types';
+import type { PredictionMarket } from '@/lib/core/market';
+import { getRawPolymarketMarket } from '@/lib/providers/polymarket/adapter';
 import type { CreateOrderResponse, OrderPreview } from '@/lib/polymarket/order';
 import { WalletButton } from './wallet-button';
 import { usePolymarketCollateral } from '@/hooks/use-polymarket-collateral';
 import { useRiskAcknowledgement } from '@/hooks/use-risk-acknowledgement';
 
-export function OrderForm({ market }: { market: GammaMarket }) {
+export function OrderForm({ market }: { market: PredictionMarket }) {
   const t = useTranslations('market');
   const tWallet = useTranslations('wallet');
   const { address, isConnected } = useAccount();
@@ -22,13 +23,16 @@ export function OrderForm({ market }: { market: GammaMarket }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { acknowledged: riskAcknowledged, ready: riskReady } =
     useRiskAcknowledgement();
+  const rawPolymarketMarket = getRawPolymarketMarket(market);
+  const yesOutcome = market.outcomes[0];
+  const noOutcome = market.outcomes[1];
   const collateral = usePolymarketCollateral({
     amount,
-    negRisk: market.negRisk,
+    negRisk: market.trading.negRisk,
   });
 
-  const yesPrice = parseFloat(market.outcomePrices?.[0] ?? '0.5');
-  const noPrice = 1 - yesPrice;
+  const yesPrice = yesOutcome?.price ?? 0.5;
+  const noPrice = noOutcome?.price ?? 1 - yesPrice;
   const price = side === 'YES' ? yesPrice : noPrice;
   const amountNumber = parseFloat(amount || '0');
   const shares = price > 0 ? amountNumber / price : 0;
@@ -38,9 +42,11 @@ export function OrderForm({ market }: { market: GammaMarket }) {
 
   const buildPreview = (): OrderPreview | null => {
     if (!address) return null;
+    const selectedOutcome = side === 'YES' ? yesOutcome : noOutcome;
+    if (!selectedOutcome?.tokenId) return null;
     return {
-      marketId: market.id,
-      tokenId: side === 'YES' ? market.clobTokenIds[0] : market.clobTokenIds[1],
+      marketId: market.source.externalId,
+      tokenId: selectedOutcome.tokenId,
       outcome: side,
       side: 'BUY',
       price,
@@ -48,8 +54,8 @@ export function OrderForm({ market }: { market: GammaMarket }) {
       collateralAmount: amountNumber,
       trader: address,
       spender: collateral.spender,
-      tickSize: market.orderPriceMinTickSize ?? '0.01',
-      negRisk: market.negRisk,
+      tickSize: market.trading.minTickSize ?? '0.01',
+      negRisk: market.trading.negRisk,
     };
   };
 
@@ -182,7 +188,7 @@ export function OrderForm({ market }: { market: GammaMarket }) {
         ) : (
           <button
             onClick={handleSubmitOrder}
-            disabled={!market.acceptingOrders || amountNumber <= 0 || isSubmitting}
+            disabled={!market.trading.acceptingOrders || amountNumber <= 0 || isSubmitting || !rawPolymarketMarket}
             className={cn(
               'w-full py-3 rounded-lg font-medium transition-colors',
               side === 'YES'

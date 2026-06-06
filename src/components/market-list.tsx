@@ -1,4 +1,4 @@
-import { listMarkets } from '@/lib/polymarket/gamma';
+import { listPredictionMarkets } from '@/lib/core/catalog';
 import type { MarketCategory } from '@/lib/polymarket/types';
 import { MarketCard } from './market-card';
 import { getTranslations } from 'next-intl/server';
@@ -8,7 +8,7 @@ export async function MarketList({ category }: { category: MarketCategory }) {
 
   let markets;
   try {
-    markets = await listMarkets({ category, limit: 24 });
+    markets = await listPredictionMarkets({ category, limit: 24 });
   } catch (err) {
     console.error('[MarketList] gamma error:', err);
     return (
