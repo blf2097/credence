@@ -4,6 +4,8 @@ import { OrderForm } from '@/components/order-form';
 import { NativeSignalForm } from '@/components/native-signal-form';
 import { OrderBookView } from '@/components/order-book-view';
 import { RiskAcknowledgement } from '@/components/risk-acknowledgement';
+import { WorldModelDetail } from '@/components/world-model-detail';
+import { getWorldModelBundleByMarket } from '@/lib/providers/credence-native/world-models';
 import { formatProb, formatUSD } from '@/lib/utils';
 import { notFound } from 'next/navigation';
 import { unstable_setRequestLocale } from 'next-intl/server';
@@ -24,6 +26,8 @@ export default async function MarketDetailPage({
   if (!market) notFound();
 
   const primaryOutcome = getPrimaryOutcome(market);
+  const worldModelBundle =
+    market.kind === 'world_model' ? getWorldModelBundleByMarket(market) : null;
 
   return (
     <>
@@ -45,7 +49,9 @@ export default async function MarketDetailPage({
           <p className="text-fg-muted whitespace-pre-line">
             {market.description}
           </p>
-          {market.provider === 'credence' ? (
+          {worldModelBundle ? (
+            <WorldModelDetail bundle={worldModelBundle} locale={params.locale} />
+          ) : market.provider === 'credence' ? (
             <NativeMarketContext market={market} />
           ) : (
             <OrderBookView tokenId={primaryOutcome?.tokenId} />
