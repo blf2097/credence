@@ -2,6 +2,7 @@ import { getPredictionMarket } from '@/lib/core/catalog';
 import { getPrimaryOutcome, type PredictionMarket } from '@/lib/core/market';
 import { OrderForm } from '@/components/order-form';
 import { NativeSignalForm } from '@/components/native-signal-form';
+import { ScalarDistributionForm } from '@/components/scalar-distribution-form';
 import { OrderBookView } from '@/components/order-book-view';
 import { RiskAcknowledgement } from '@/components/risk-acknowledgement';
 import { WorldModelDetail } from '@/components/world-model-detail';
@@ -58,7 +59,9 @@ export default async function MarketDetailPage({
           )}
         </div>
         <aside className="md:col-span-1">
-          {market.provider === 'credence' ? (
+          {market.provider === 'credence' && market.kind === 'scalar' ? (
+            <ScalarDistributionForm market={market} />
+          ) : market.provider === 'credence' ? (
             <NativeSignalForm market={market} />
           ) : (
             <OrderForm market={market} />
