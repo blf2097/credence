@@ -1,57 +1,23 @@
-import type { Address } from 'viem';
 import type { PredictionMarket } from '@/lib/core/market';
+import {
+  localStoragePredictionRepository,
+} from '@/lib/providers/local-storage/prediction-repository';
+import type { ScalarDistributionPrediction } from '@/lib/core/repositories/prediction-repository';
 
-const SCALAR_SUBMISSIONS_KEY = 'credence:native-scalar-submissions:v1';
+export type ScalarDistributionSubmission = ScalarDistributionPrediction;
 
-export interface ScalarDistributionSubmission {
-  id: string;
-  marketId: string;
-  marketTitle: string;
-  unit?: string;
-  min?: number;
-  max?: number;
-  p10: number;
-  p50: number;
-  p90: number;
-  confidence: number;
-  rationale?: string;
-  trader?: Address;
-  createdAt: string;
-}
-
-export function saveScalarDistributionSubmission(
+export async function saveScalarDistributionSubmission(
   submission: Omit<ScalarDistributionSubmission, 'id' | 'createdAt'>,
-): ScalarDistributionSubmission {
-  const next: ScalarDistributionSubmission = {
-    ...submission,
-    id: `scalar:${submission.marketId}:${Date.now()}`,
-    createdAt: new Date().toISOString(),
-  };
-  const existing = getScalarDistributionSubmissions();
-  window.localStorage.setItem(
-    SCALAR_SUBMISSIONS_KEY,
-    JSON.stringify([next, ...existing]),
-  );
-  return next;
+): Promise<ScalarDistributionSubmission> {
+  return localStoragePredictionRepository.saveScalarDistributionPrediction(submission);
 }
 
-export function getScalarDistributionSubmissions(): ScalarDistributionSubmission[] {
-  if (typeof window === 'undefined') return [];
-  const raw = window.localStorage.getItem(SCALAR_SUBMISSIONS_KEY);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as ScalarDistributionSubmission[]) : [];
-  } catch {
-    window.localStorage.removeItem(SCALAR_SUBMISSIONS_KEY);
-    return [];
-  }
+export async function getScalarDistributionSubmissions(): Promise<ScalarDistributionSubmission[]> {
+  return localStoragePredictionRepository.listScalarDistributionPredictions();
 }
 
-export function getScalarDistributionSubmissionsForMarket(marketId: string) {
-  return getScalarDistributionSubmissions().filter(
-    (submission) => submission.marketId === marketId,
-  );
+export async function getScalarDistributionSubmissionsForMarket(marketId: string) {
+  return localStoragePredictionRepository.listScalarDistributionPredictions(marketId);
 }
 
 export function getScalarMetadata(market: PredictionMarket) {

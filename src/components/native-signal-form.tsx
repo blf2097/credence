@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
 import type { PredictionMarket } from '@/lib/core/market';
 import {
@@ -16,21 +16,21 @@ export function NativeSignalForm({ market }: { market: PredictionMarket }) {
   const [confidence, setConfidence] = useState(60);
   const [amount, setAmount] = useState(10);
   const [rationale, setRationale] = useState('');
-  const [submissions, setSubmissions] = useState<NativeSignalSubmission[]>(() =>
-    typeof window === 'undefined'
-      ? []
-      : getNativeSignalSubmissionsForMarket(market.id),
-  );
+  const [submissions, setSubmissions] = useState<NativeSignalSubmission[]>([]);
   const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    void getNativeSignalSubmissionsForMarket(market.id).then(setSubmissions);
+  }, [market.id]);
 
   const selectedOutcome = useMemo(
     () => market.outcomes.find((outcome) => outcome.id === selectedOutcomeId),
     [market.outcomes, selectedOutcomeId],
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedOutcome) return;
-    const saved = saveNativeSignalSubmission({
+    const saved = await saveNativeSignalSubmission({
       marketId: market.id,
       marketTitle: market.title,
       marketKind: market.kind,

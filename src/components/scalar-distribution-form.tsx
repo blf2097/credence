@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import type { PredictionMarket } from '@/lib/core/market';
 import {
@@ -22,13 +22,13 @@ export function ScalarDistributionForm({ market }: { market: PredictionMarket })
   const [rationale, setRationale] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const [submissions, setSubmissions] = useState<ScalarDistributionSubmission[]>(() =>
-    typeof window === 'undefined'
-      ? []
-      : getScalarDistributionSubmissionsForMarket(market.id),
-  );
+  const [submissions, setSubmissions] = useState<ScalarDistributionSubmission[]>([]);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    void getScalarDistributionSubmissionsForMarket(market.id).then(setSubmissions);
+  }, [market.id]);
+
+  const handleSubmit = async () => {
     setError(null);
     setStatus(null);
     const validation = validateScalarDistribution({ p10, p50, p90, min, max });
@@ -37,7 +37,7 @@ export function ScalarDistributionForm({ market }: { market: PredictionMarket })
       return;
     }
 
-    const saved = saveScalarDistributionSubmission({
+    const saved = await saveScalarDistributionSubmission({
       marketId: market.id,
       marketTitle: market.title,
       unit,
