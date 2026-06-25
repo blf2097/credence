@@ -8,6 +8,7 @@ import {
   type BeliefItem,
   type BeliefPortfolio,
 } from '@/lib/providers/credence-native/belief-portfolio';
+import type { CalibrationSummary } from '@/lib/core/calibration';
 import { cn } from '@/lib/utils';
 
 const KIND_LABELS: Record<string, string> = {
@@ -46,6 +47,7 @@ export function BeliefPortfolioView() {
 
   const items = portfolio?.items ?? [];
   const summary = portfolio?.summary;
+  const calibration = portfolio?.calibration;
 
   if (!items.length) {
     return (
@@ -85,6 +87,8 @@ export function BeliefPortfolioView() {
         </section>
       ) : null}
 
+      {calibration ? <CalibrationSection calibration={calibration} /> : null}
+
       {summary?.strongest && summary.total > 1 ? (
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ConvictionCard
@@ -118,6 +122,169 @@ export function BeliefPortfolioView() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Calibration section
+// ---------------------------------------------------------------------------
+
+function CalibrationSection({ calibration }: { calibration: CalibrationSummary }) {
+  const { resolvedCount, pendingCount, averageBrier, scalarIntervalHitRate, averageScalarError, calibrationBuckets, calibrationVerdict } = calibration;
+
+  if (resolvedCount === 0) {
+    return (
+      <section className="rounded-xl border border-border bg-bg-card p-6">
+        <h2 className="text-sm font-medium mb-2">Track Record</h2>
+        <p className="text-sm text-fg-muted leading-relaxed">
+          还没有已结算的预测。在市场详情页点击「手动结算」模拟结果，这里会显示你的 Brier 分数、校准曲线和变量命中率。
+        </p>
+        {pendingCount > 0 ? (
+          <p className="mt-2 text-xs text-fg-subtle">
+            当前有 {pendingCount} 个未结算的市场。
+          </p>
+        ) : null}
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-4">
+      <h2 className="text-sm font-medium text-fg-muted">Track Record</h2>
+
+      <div className="rounded-xl border border-border bg-bg-card p-5">
+        <p className="text-sm leading-relaxed">{calibrationVerdict}</p>
+        <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard
+            label="已结算"
+            value={resolvedCount.toString()}
+            sub={pendingCount > 0 ? `${pendingCount} 待结算` : undefined}
+          />
+          {calibration.scoredSignals.length > 0 ? (
+            <MetricCard
+              label="Brier 分数"
+              value={averageBrier.toFixed(3)}
+              sub={averageBrier <= 0.25 ? '优于随机' : averageBrier <= 0.33 ? '接近随机' : '差于随机'}
+              tone={averageBrier <= 0.25 ? 'good' : averageBrier <= 0.33 ? 'neutral' : 'bad'}
+            />
+          ) : null}
+          {calibration.scoredScalars.length > 0 ? (
+            <>
+              <MetricCard
+                label="区间命中率"
+                value={`${(scalarIntervalHitRate * 100).toFixed(0)}%`}
+                sub="P10-P90 命中"
+                tone={scalarIntervalHitRate >= 0.7 ? 'good' : scalarIntervalHitRate >= 0.5 ? 'neutral' : 'bad'}
+              />
+              <MetricCard
+                label="归一化误差"
+                value={averageScalarError.toFixed(2)}
+                sub="|actual - P50| / range"
+                tone={averageScalarError <= 0.2 ? 'good' : averageScalarError <= 0.4 ? 'neutral' : 'bad'}
+              />
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      {calibrationBuckets.length > 0 ? (
+        <div className="rounded-xl border border-border bg-bg-card p-5">
+          <h3 className="text-xs font-medium text-fg-subtle mb-3">校准曲线</h3>
+          <p className="text-xs text-fg-muted mb-4">
+            每个置信度区间内的实际命中率。完美校准时，命中率 ≈ 置信度区间中点。
+          </p>
+          <div className="space-y-2">
+            {calibrationBuckets.map((bucket) => {
+              const midpoint = (bucket.range[0] + bucket.range[1]) / 2 / 100;
+              const diff = bucket.hitRate - midpoint;
+              return (
+                <div key={bucket.label} className="flex items-center gap-3">
+                  <div className="w-16 text-xs text-fg-muted font-mono shrink-0">
+                    {bucket.label}
+                  </div>
+                  <div className="flex-1 h-6 rounded bg-bg-elevated overflow-hidden relative">
+                    <div
+                      className="h-full rounded transition-all"
+                      style={{
+                        width: `${Math.min(bucket.hitRate * 100, 100)}%`,
+                        backgroundColor: Math.abs(diff) < 0.1 ? '#0E5C4A' : diff > 0 ? '#4A7C2A' : '#B68A2E',
+                      }}
+                    />
+                    <div
+                      className="absolute top-0 bottom-0 border-l-2 border-accent/60"
+                      style={{ left: `${midpoint * 100}%` }}
+                    />
+                  </div>
+                  <div className="w-20 text-xs text-right shrink-0">
+                    <span className="font-mono">{(bucket.hitRate * 100).toFixed(0)}%</span>
+                    <span className="text-fg-subtle"> / {bucket.total}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 text-[10px] text-fg-subtle">
+            绿色竖线 = 完美校准点位 · 绿条 = 命中率高于预期 · 金条 = 命中率低于预期
+          </div>
+        </div>
+      ) : null}
+
+      {calibration.scoredSignals.length > 0 ? (
+        <div className="rounded-xl border border-border bg-bg-card p-5">
+          <h3 className="text-xs font-medium text-fg-subtle mb-3">已结算的事件型预测</h3>
+          <div className="space-y-2">
+            {calibration.scoredSignals.map((scored) => (
+              <div key={scored.prediction.id} className="flex items-center justify-between gap-3 text-xs">
+                <div className="min-w-0 flex-1 truncate">
+                  <span className={scored.correct ? 'text-accent' : 'text-accent-danger'}>
+                    {scored.correct ? '✓' : '✗'}
+                  </span>
+                  {' '}
+                  <span className="text-fg">{scored.prediction.outcomeLabel}</span>
+                  {' '}
+                  <span className="text-fg-subtle">— {scored.prediction.marketTitle.slice(0, 30)}</span>
+                </div>
+                <div className="shrink-0 font-mono text-fg-muted">
+                  {scored.prediction.confidence}% → Brier {scored.brierScore.toFixed(2)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {calibration.scoredScalars.length > 0 ? (
+        <div className="rounded-xl border border-border bg-bg-card p-5">
+          <h3 className="text-xs font-medium text-fg-subtle mb-3">已结算的变量型预测</h3>
+          <div className="space-y-2">
+            {calibration.scoredScalars.map((scored) => (
+              <div key={scored.prediction.id} className="flex items-center justify-between gap-3 text-xs">
+                <div className="min-w-0 flex-1">
+                  <span className={scored.intervalHit ? 'text-accent' : 'text-accent-danger'}>
+                    {scored.intervalHit ? '✓' : '✗'}
+                  </span>
+                  {' '}
+                  <span className="text-fg-subtle">
+                    P10 {scored.prediction.p10} · P50 {scored.prediction.p50} · P90 {scored.prediction.p90}
+                  </span>
+                  {' → '}
+                  <span className="font-mono text-fg">
+                    actual {scored.resolution.resolvedValue}
+                  </span>
+                </div>
+                <div className="shrink-0 font-mono text-fg-muted">
+                  err {scored.normalizedError.toFixed(2)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared components
+// ---------------------------------------------------------------------------
+
 function PageHeading() {
   return (
     <div className="mb-2">
@@ -134,6 +301,34 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-border bg-bg-card p-4">
       <div className="text-xs text-fg-subtle">{label}</div>
       <div className="mt-1 text-2xl font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: 'good' | 'neutral' | 'bad';
+}) {
+  return (
+    <div className="rounded-lg bg-bg-elevated p-3">
+      <div className="text-xs text-fg-subtle">{label}</div>
+      <div
+        className={cn(
+          'mt-1 text-xl font-semibold',
+          tone === 'good' && 'text-accent',
+          tone === 'bad' && 'text-accent-danger',
+        )}
+      >
+        {value}
+      </div>
+      {sub ? <div className="mt-0.5 text-[10px] text-fg-subtle">{sub}</div> : null}
     </div>
   );
 }

@@ -3,12 +3,15 @@ import type {
   NativeSignalPrediction,
   ScalarDistributionPrediction,
 } from '@/lib/core/repositories/prediction-repository';
+import type { CalibrationSummary } from '@/lib/core/calibration';
+import { buildCalibrationSummary } from '@/lib/core/calibration';
 import {
   getNativeSignalSubmissions,
 } from './submissions';
 import {
   getScalarDistributionSubmissions,
 } from './scalar-submissions';
+import { getResolutions } from './resolutions';
 
 /**
  * A unified view over everything a user currently "believes" inside Credence.
@@ -53,6 +56,7 @@ export interface BeliefPortfolioSummary {
 export interface BeliefPortfolio {
   items: BeliefItem[];
   summary: BeliefPortfolioSummary;
+  calibration: CalibrationSummary;
 }
 
 function signalToBelief(signal: NativeSignalPrediction): BeliefItem {
@@ -126,9 +130,10 @@ function buildSummary(items: BeliefItem[]): BeliefPortfolioSummary {
  * layer later moves from localStorage to Supabase this function does not change.
  */
 export async function getBeliefPortfolio(): Promise<BeliefPortfolio> {
-  const [signals, scalars] = await Promise.all([
+  const [signals, scalars, resolutions] = await Promise.all([
     getNativeSignalSubmissions(),
     getScalarDistributionSubmissions(),
+    getResolutions(),
   ]);
 
   const items: BeliefItem[] = [
@@ -139,5 +144,7 @@ export async function getBeliefPortfolio(): Promise<BeliefPortfolio> {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  return { items, summary: buildSummary(items) };
+  const calibration = buildCalibrationSummary(signals, scalars, resolutions);
+
+  return { items, summary: buildSummary(items), calibration };
 }
