@@ -178,7 +178,68 @@ If production breaks:
 - `GEO_BLOCK_COUNTRIES` is confirmed in production.
 - Order submit telemetry/error logging exists.
 
-## 9. D8 readiness
+## 9. Supabase setup (optional but recommended before native predictions go multi-user)
+
+### 9.1 Create project
+
+1. Create a Supabase project at `https://supabase.com`.
+2. Note the Project URL, anon key, and service role key.
+
+### 9.2 Apply schema migration
+
+Run the SQL migration in the Supabance SQL Editor:
+
+```sql
+-- File: supabase/migrations/0001_credence_native_schema.sql
+```
+
+This creates tables: `credence_users`, `native_markets`, `native_signal_predictions`, `scalar_distribution_predictions`, `world_models`, `evidence_nodes`, `model_updates`, `belief_portfolio_items`.
+
+### 9.3 Seed native SKU content
+
+From the project root:
+
+```bash
+SUPABASE_URL=<url> SUPABASE_SERVICE_ROLE_KEY=<key> \
+  node --import tsx scripts/seed-native-skus.ts
+```
+
+This upserts all markets, world models, and evidence from `src/content/native-skus/*.json` into Supabase. It is idempotent — re-run after editing JSON content.
+
+### 9.4 Configure RLS
+
+For the MVP, set RLS policies on `native_signal_predictions` and `scalar_distribution_predictions` so that:
+
+- Users can read all predictions (public leaderboard / aggregate distributions).
+- Users can only insert/update/delete their own predictions (filtered by `wallet_address` or `auth.uid()`).
+
+Example policy for inserts:
+
+```sql
+create policy "Users can insert own predictions"
+  on public.native_signal_predictions for insert
+  with check (wallet_address = current_setting('app.wallet_address', true));
+```
+
+### 9.5 Set env vars
+
+In Vercel (or `.env.local`):
+
+```env
+NEXT_PUBLIC_SUPABASE_URL="<project-url>"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="<anon-key>"
+SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
+```
+
+When `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are both set and non-empty, the app automatically uses `SupabasePredictionRepository`. When absent, it falls back to `LocalStoragePredictionRepository`.
+
+### 9.6 Smoke test
+
+- Without Supabase env: submit a prediction, verify it persists in localStorage.
+- With Supabase env: submit a prediction, verify it appears in the Supabase table.
+- `/zh/beliefs` should show predictions regardless of which repository is active.
+
+## 10. D8 readiness
 
 After D7 passes, next development track can continue with:
 
