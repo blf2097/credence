@@ -25,6 +25,9 @@ export function Header() {
           <Link href={`/${locale}`} className="hover:text-fg">
             {t('markets')}
           </Link>
+          <Link href={`/${locale}/beliefs`} className="hover:text-fg">
+            {t('beliefs')}
+          </Link>
           <Link href={`/${locale}/portfolio`} className="hover:text-fg">
             {t('portfolio')}
           </Link>
