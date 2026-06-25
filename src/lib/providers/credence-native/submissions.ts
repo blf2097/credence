@@ -1,8 +1,6 @@
 import type { Address } from 'viem';
 import type { PredictionMarket } from '@/lib/core/market';
-import {
-  localStoragePredictionRepository,
-} from '@/lib/providers/local-storage/prediction-repository';
+import { getPredictionRepository } from '@/lib/core/repositories/get-prediction-repository';
 import type { NativeSignalPrediction } from '@/lib/core/repositories/prediction-repository';
 
 export type NativeSignalSubmission = NativeSignalPrediction;
@@ -10,15 +8,15 @@ export type NativeSignalSubmission = NativeSignalPrediction;
 export async function saveNativeSignalSubmission(
   submission: Omit<NativeSignalSubmission, 'id' | 'createdAt'>,
 ): Promise<NativeSignalSubmission> {
-  return localStoragePredictionRepository.saveNativeSignalPrediction(submission);
+  return getPredictionRepository().saveNativeSignalPrediction(submission);
 }
 
 export async function getNativeSignalSubmissions(): Promise<NativeSignalSubmission[]> {
-  return localStoragePredictionRepository.listNativeSignalPredictions();
+  return getPredictionRepository().listNativeSignalPredictions();
 }
 
 export async function getNativeSignalSubmissionsForMarket(marketId: string) {
-  return localStoragePredictionRepository.listNativeSignalPredictions(marketId);
+  return getPredictionRepository().listNativeSignalPredictions(marketId);
 }
 
 export type { Address, PredictionMarket };

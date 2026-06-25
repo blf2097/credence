@@ -42,7 +42,7 @@ export function NativeSignalForm({ market }: { market: PredictionMarket }) {
       trader: address,
     });
     setSubmissions((prev) => [saved, ...prev]);
-    setStatus('已保存模拟信念提交。本操作只写入本地浏览器，不触发真实资金交易。');
+    setStatus('已保存信念提交。如果已配置 Supabase，数据已写入云端；否则仅写入本地浏览器。');
     setRationale('');
   };
 
@@ -117,7 +117,7 @@ export function NativeSignalForm({ market }: { market: PredictionMarket }) {
           disabled={!selectedOutcome || !Number.isFinite(amount) || amount <= 0}
           className="w-full rounded-lg bg-fg px-4 py-3 font-medium text-bg hover:opacity-90 disabled:opacity-40"
         >
-          保存模拟提交
+          保存信念提交
         </button>
       </div>
 
@@ -129,7 +129,7 @@ export function NativeSignalForm({ market }: { market: PredictionMarket }) {
 
       <div className="mt-5 border-t border-border pt-4">
         <div className="flex items-center justify-between text-xs text-fg-subtle">
-          <span>本地提交记录</span>
+        <span>信念提交记录</span>
           <span>{submissions.length}</span>
         </div>
         <div className="mt-2 space-y-2 max-h-56 overflow-auto">

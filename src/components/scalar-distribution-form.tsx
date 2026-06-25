@@ -51,7 +51,7 @@ export function ScalarDistributionForm({ market }: { market: PredictionMarket })
       trader: address,
     });
     setSubmissions((prev) => [saved, ...prev]);
-    setStatus('已保存变量分布预测。本操作只写入本地浏览器，不触发真实资金交易。');
+    setStatus('已保存变量分布预测。如果已配置 Supabase，数据已写入云端；否则仅写入本地浏览器。');
     setRationale('');
   };
 
@@ -119,7 +119,7 @@ export function ScalarDistributionForm({ market }: { market: PredictionMarket })
 
       <div className="mt-5 border-t border-border pt-4">
         <div className="flex items-center justify-between text-xs text-fg-subtle">
-          <span>本地分布预测记录</span>
+          <span>分布预测记录</span>
           <span>{submissions.length}</span>
         </div>
         <div className="mt-2 space-y-2 max-h-56 overflow-auto">

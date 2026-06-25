@@ -1,7 +1,5 @@
 import type { PredictionMarket } from '@/lib/core/market';
-import {
-  localStoragePredictionRepository,
-} from '@/lib/providers/local-storage/prediction-repository';
+import { getPredictionRepository } from '@/lib/core/repositories/get-prediction-repository';
 import type { ScalarDistributionPrediction } from '@/lib/core/repositories/prediction-repository';
 
 export type ScalarDistributionSubmission = ScalarDistributionPrediction;
@@ -9,15 +7,15 @@ export type ScalarDistributionSubmission = ScalarDistributionPrediction;
 export async function saveScalarDistributionSubmission(
   submission: Omit<ScalarDistributionSubmission, 'id' | 'createdAt'>,
 ): Promise<ScalarDistributionSubmission> {
-  return localStoragePredictionRepository.saveScalarDistributionPrediction(submission);
+  return getPredictionRepository().saveScalarDistributionPrediction(submission);
 }
 
 export async function getScalarDistributionSubmissions(): Promise<ScalarDistributionSubmission[]> {
-  return localStoragePredictionRepository.listScalarDistributionPredictions();
+  return getPredictionRepository().listScalarDistributionPredictions();
 }
 
 export async function getScalarDistributionSubmissionsForMarket(marketId: string) {
-  return localStoragePredictionRepository.listScalarDistributionPredictions(marketId);
+  return getPredictionRepository().listScalarDistributionPredictions(marketId);
 }
 
 export function getScalarMetadata(market: PredictionMarket) {
