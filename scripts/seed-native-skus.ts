@@ -2,14 +2,12 @@
  * Seed Credence-native SKU content into Supabase.
  *
  * Usage:
- *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
- *     node --import tsx scripts/seed-native-skus.ts
+ *   pnpm seed:native
  *
- * Or with a .env.local present (Next.js loads it automatically in dev,
- * but for a standalone script you need to load it yourself):
- *   node --env-file=.env.local --import tsx scripts/seed-native-skus.ts
+ * Reads env vars from .env.local automatically. If Supabase is not configured,
+ * runs in validate-only mode (checks JSON content without writing to a database).
  *
- * This script uses the SERVICE ROLE key, which bypasses RLS.
+ * This script uses the SERVICE ROLE key when available, which bypasses RLS.
  * Never expose the service role key in the browser.
  *
  * The script is idempotent: it upserts markets, world models, and evidence
@@ -18,32 +16,87 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const contentDir = resolve(__dirname, '../src/content/native-skus');
+const envLocalPath = resolve(__dirname, '../.env.local');
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceKey) {
-  console.error(
-    'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Set them in .env.local or as env vars.',
-  );
-  process.exit(1);
+// --- Auto-load .env.local so the user doesn't need --env-file ---
+if (existsSync(envLocalPath)) {
+  const raw = readFileSync(envLocalPath, 'utf-8');
+  for (const line of raw.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed
+      .slice(eqIndex + 1)
+      .trim()
+      .replace(/^["']|["']$/g, '');
+    if (key && !(key in process.env)) {
+      process.env[key] = value;
+    }
+  }
 }
 
-const supabase = createClient(supabaseUrl, serviceKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const supabaseUrl =
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+const hasSupabaseConfig =
+  supabaseUrl.trim() !== '' && serviceKey.trim() !== '';
+
+function createSupabase() {
+  if (!hasSupabaseConfig) return null;
+  return createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+const supabase = createSupabase();
 
 function loadJson(filename: string) {
   const raw = readFileSync(resolve(contentDir, filename), 'utf-8');
   return JSON.parse(raw);
 }
+
+// --- Validate-only mode (no Supabase) ---
+
+function validateOnly() {
+  console.log('Supabase 未配置。运行 validate-only 模式（只检查 JSON 内容，不写入数据库）。\n');
+  console.log('如果要写入 Supabase，请在 .env.local 中填写:');
+  console.log('  NEXT_PUBLIC_SUPABASE_URL="<your-project-url>"');
+  console.log('  SUPABASE_SERVICE_ROLE_KEY="<your-service-role-key>"');
+  console.log('');
+
+  const markets = loadJson('markets.json');
+  const models = loadJson('world-models.json');
+  const evidence = loadJson('evidence.json');
+
+  console.log(`Markets: ${markets.length}`);
+  for (const m of markets) {
+    console.log(`  OK   ${m.id} (${m.kind}) — ${m.title.slice(0, 40)}`);
+  }
+
+  console.log(`\nWorld models: ${models.length}`);
+  for (const wm of models) {
+    console.log(`  OK   ${wm.id} — ${wm.title.slice(0, 40)}`);
+  }
+
+  console.log(`\nEvidence: ${evidence.length}`);
+  for (const ev of evidence) {
+    console.log(`  OK   ${ev.id} — ${ev.title.slice(0, 40)}`);
+  }
+
+  console.log(`\nValidate-only 完成。共 ${markets.length} markets, ${models.length} models, ${evidence.length} evidence。`);
+}
+
+// --- Supabase seed mode ---
 
 async function seedMarkets() {
   const markets = loadJson('markets.json');
@@ -72,7 +125,7 @@ async function seedMarkets() {
       },
     };
 
-    const { error } = await supabase
+    const { error } = await supabase!
       .from('native_markets')
       .upsert(row, { onConflict: 'id' });
 
@@ -105,7 +158,7 @@ async function seedWorldModels() {
       metadata: model.metadata ?? {},
     };
 
-    const { error } = await supabase
+    const { error } = await supabase!
       .from('world_models')
       .upsert(row, { onConflict: 'id' });
 
@@ -134,7 +187,7 @@ async function seedEvidence() {
       bayes_update: ev.bayesUpdate ?? null,
     };
 
-    const { error } = await supabase
+    const { error } = await supabase!
       .from('evidence_nodes')
       .upsert(row, { onConflict: 'id' });
 
@@ -147,6 +200,11 @@ async function seedEvidence() {
 }
 
 async function main() {
+  if (!hasSupabaseConfig) {
+    validateOnly();
+    process.exit(0);
+  }
+
   console.log(`Supabase URL: ${supabaseUrl}`);
   console.log('---');
   await seedMarkets();
