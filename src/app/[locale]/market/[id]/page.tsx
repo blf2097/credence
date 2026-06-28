@@ -7,6 +7,7 @@ import { MarketResolutionPanel } from '@/components/market-resolution-panel';
 import { OrderBookView } from '@/components/order-book-view';
 import { RiskAcknowledgement } from '@/components/risk-acknowledgement';
 import { WorldModelDetail } from '@/components/world-model-detail';
+import { EvidenceDraftPanel } from '@/components/evidence-draft-panel';
 import { getWorldModelBundleByMarket } from '@/lib/providers/credence-native/world-models';
 import { formatProb, formatUSD } from '@/lib/utils';
 import { notFound } from 'next/navigation';
@@ -69,6 +70,12 @@ export default async function MarketDetailPage({
           )}
           {market.provider === 'credence' ? (
             <MarketResolutionPanel market={market} />
+          ) : null}
+          {worldModelBundle ? (
+            <EvidenceDraftPanel
+              model={worldModelBundle.model}
+              seedConfidence={worldModelBundle.model.confidence}
+            />
           ) : null}
         </aside>
       </div>
