@@ -4,6 +4,7 @@ import {
   credenceNativeMarkets,
   credenceWorldModels,
 } from './content-loader';
+import { getAllNativeMarkets, getAllWorldModels } from './dynamic-catalog';
 
 export interface WorldModelBundle {
   model: WorldModelNode;
@@ -21,8 +22,11 @@ export function getWorldModelBundleByMarket(
 }
 
 export function getWorldModelBundle(modelId: string): WorldModelBundle | null {
-  const model = credenceWorldModels.find((item) => item.id === modelId);
+  const allModels = typeof window !== 'undefined' ? getAllWorldModels() : credenceWorldModels;
+  const model = allModels.find((item) => item.id === modelId);
   if (!model) return null;
+
+  const allMarkets = typeof window !== 'undefined' ? getAllNativeMarkets() : credenceNativeMarkets;
 
   return {
     model,
@@ -33,9 +37,15 @@ export function getWorldModelBundle(modelId: string): WorldModelBundle | null {
       .map(getEvidenceById)
       .filter(Boolean) as EvidenceNode[],
     linkedMarkets: model.predictionMarketIds
-      .map((id) => credenceNativeMarkets.find((market) => market.id === id))
+      .map((id) => allMarkets.find((market) => market.id === id))
       .filter(Boolean) as PredictionMarket[],
   };
+}
+
+/** List all world models (static + dynamic). */
+export function listAllWorldModelBundles(): WorldModelBundle[] {
+  const allModels = typeof window !== 'undefined' ? getAllWorldModels() : credenceWorldModels;
+  return allModels.map((model) => getWorldModelBundle(model.id)).filter(Boolean) as WorldModelBundle[];
 }
 
 function getEvidenceById(id: string) {

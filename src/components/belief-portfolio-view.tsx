@@ -9,6 +9,7 @@ import {
   type BeliefPortfolio,
 } from '@/lib/providers/credence-native/belief-portfolio';
 import type { CalibrationSummary } from '@/lib/core/calibration';
+import { ActionRecommendations } from '@/components/action-recommendations';
 import { cn } from '@/lib/utils';
 
 const KIND_LABELS: Record<string, string> = {
@@ -74,6 +75,8 @@ export function BeliefPortfolioView() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 space-y-8">
       <PageHeading />
+
+      <ActionRecommendations />
 
       {summary ? (
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
