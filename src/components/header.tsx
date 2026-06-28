@@ -31,6 +31,9 @@ export function Header() {
           <Link href={`/${locale}/portfolio`} className="hover:text-fg">
             {t('portfolio')}
           </Link>
+          <Link href={`/${locale}/admin`} className="hover:text-fg text-xs">
+            管理
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3">

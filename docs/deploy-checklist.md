@@ -145,6 +145,44 @@ With `NEXT_PUBLIC_ENABLE_REAL_TRADING=false`:
 - `/zh/blocked` renders.
 - `/en/blocked` renders.
 
+### Credence-native SKU (event / scalar / world_model)
+
+- `/zh` shows Credence-native SKU cards at the top (before Polymarket markets).
+- Clicking a native event SKU opens detail page with NativeSignalForm.
+- Clicking a native scalar SKU opens detail page with ScalarDistributionForm (P10/P50/P90).
+- Clicking a native world_model SKU opens detail page with WorldModelDetail + EvidenceDraftPanel.
+- Submitting a signal prediction shows it in the form's history list.
+- Submitting a scalar distribution validates P10 <= P50 <= P90.
+- Manual resolution panel appears on native SKU detail pages.
+- Resolving a market and visiting `/zh/beliefs` shows it in Track Record.
+
+### Belief Portfolio
+
+- `/zh/beliefs` loads.
+- Empty state shows when no predictions exist.
+- Summary cards (total, average confidence, signal count, scalar count) render.
+- Track Record section shows when resolved predictions exist.
+- Calibration curve renders with confidence buckets.
+- Action Recommendations section appears when applicable.
+- Strongest/weakest conviction cards render when items > 1.
+
+### Admin panel
+
+- `/zh/admin` loads.
+- Event SKU form: fill and create → SKU appears on `/zh` immediately.
+- Scalar SKU form: fill and create → SKU appears on `/zh` immediately.
+- World model form: fill and create → model + linked SKU appear.
+- "已创建" tab lists dynamic SKUs and models.
+- Delete button removes dynamic SKU/model.
+
+### AI Evidence Pipeline (world model only)
+
+- On world_model SKU detail page, "生成证据草稿" button works.
+- Generated draft shows title, summary, stance, proposed prior→posterior.
+- User can edit rationale before approving.
+- Approve → confidence updates → timeline shows new entry.
+- Reject → draft discarded.
+
 ## 6. Production smoke test
 
 After binding `credence.gg`, repeat all preview checks using:
